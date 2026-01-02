@@ -33,6 +33,10 @@ fingear_env/
 *.swo
 *~
 
+# Claude Code 與 AI 助手配置
+.agent/
+.claude/
+
 # Jupyter Notebook
 .ipynb_checkpoints
 
