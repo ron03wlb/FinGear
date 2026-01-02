@@ -5,13 +5,13 @@ screening:
 
   # 因子權重設定
   factor_weights:
-    roe: 0.10
-    gross_margin_trend: 0.05
-    debt_ratio: 0.05
-    fcf: 0.05
-    revenue_yoy: 0.05
-    eps_yoy: 0.05
-    pe_relative: 0.05
+    roe: 0.20
+    eps_yoy: 0.20
+    fcf: 0.15
+    gross_margin_trend: 0.15
+    revenue_yoy: 0.10
+    debt_ratio: 0.10
+    pe_relative: 0.10
 
   # 籌碼面門檻
   chips:

@@ -46,16 +46,32 @@ class NotificationService:
     ) -> bool:
         """
         發送 Line Notify 通知
-
-        Args:
-            message: 訊息內容
-            max_retries: 最大重試次數
-
-        Returns:
-            bool: 發送成功返回 True
         """
-        # TODO: 實作Line Notify發送邏輯
-        pass
+        token = self.config.get('line_notify', {}).get('token')
+        if not token:
+            self.logger.warning("未配置 Line Notify Token")
+            return False
+
+        headers = {"Authorization": f"Bearer {token}"}
+        payload = {"message": message}
+        
+        for attempt in range(max_retries):
+            try:
+                response = requests.post(
+                    "https://notify-api.line.me/api/notify",
+                    headers=headers,
+                    params=payload,
+                    timeout=10
+                )
+                if response.status_code == 200:
+                    self.logger.info("Line Notify 發送成功")
+                    return True
+                else:
+                    self.logger.error(f"Line Notify 失敗: {response.text}")
+            except Exception as e:
+                self.logger.warning(f"Line Notify 嘗試 {attempt+1} 失敗: {e}")
+                time.sleep(2)
+        return False
 
     def send_telegram(
         self,
@@ -64,16 +80,33 @@ class NotificationService:
     ) -> bool:
         """
         發送 Telegram Bot 通知
-
-        Args:
-            message: 訊息內容
-            chat_id: 聊天 ID（可選，默認使用配置中的 ID）
-
-        Returns:
-            bool: 發送成功返回 True
         """
-        # TODO: 實作Telegram發送邏輯
-        pass
+        token = self.config.get('telegram', {}).get('bot_token')
+        target_chat_id = chat_id or self.config.get('telegram', {}).get('chat_id')
+        
+        if not token or not target_chat_id:
+            self.logger.warning("未配置 Telegram Bot Token 或 Chat ID")
+            return False
+
+        url = f"https://api.telegram.org/bot{token}/sendMessage"
+        payload = {
+            "chat_id": target_chat_id,
+            "text": message,
+            "parse_mode": "HTML"
+        }
+
+        try:
+            response = requests.post(url, json=payload, timeout=10)
+            if response.status_code == 200:
+                self.logger.info("Telegram 訊息發送成功")
+                return True
+            else:
+                self.logger.error(f"Telegram 失敗: {response.text}")
+                return False
+        except Exception as e:
+            self.logger.error(f"Telegram 發送異常: {e}")
+            return False
+
 
 
 if __name__ == '__main__':

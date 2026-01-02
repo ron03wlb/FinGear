@@ -41,14 +41,21 @@ fingear_env/
 .env.local
 config/api_keys.json
 config/secrets.yaml
+config/api_keys.json
 
-# 數據目錄（不追蹤大型數據檔案）
-data/daily/
-data/history/
-data/fundamentals/
-data/chips/
-data/raw/
-data/market_cap/
+# 數據目錄（保留目錄結構但忽略內容）
+data/daily/*
+!data/daily/.gitkeep
+data/history/*
+!data/history/.gitkeep
+data/fundamentals/*
+!data/fundamentals/.gitkeep
+data/chips/*
+!data/chips/.gitkeep
+data/shareholding/*
+!data/shareholding/.gitkeep
+data/raw/*
+data/market_cap/*
 *.parquet
 *.csv
 *.h5
@@ -57,10 +64,9 @@ data/market_cap/
 logs/
 *.log
 
-# 報告與輸出（可選擇性追蹤）
-reports/selections/*.csv
-reports/performance/*.csv
-reports/backtest/*.html
+# 報告與輸出
+reports/*
+!reports/.gitkeep
 
 # 臨時檔案
 temp/

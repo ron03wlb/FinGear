@@ -10,118 +10,176 @@ Parquet 數據管理器模組
 """
 
 import logging
+import os
 from pathlib import Path
-from typing import Optional
+from typing import Optional, List
 import pandas as pd
-
+import pyarrow as pa
+import pyarrow.parquet as pq
+from datetime import datetime
 
 class ParquetManager:
     """
-    Parquet 數據管理器
-
-    職責：統一的數據讀寫接口、分區管理、數據驗證
-    設計模式：Repository Pattern
-
-    Attributes:
-        base_path (Path): 數據根目錄
-
-    Examples:
-        >>> manager = ParquetManager(base_path='/data')
-        >>> manager.write_time_partition(df, '2024-01-01')
-        >>> data = manager.read_symbol_partition('2330')
+    Parquet 數據管理器 - 管理時間分區與個股分區
     """
 
-    def __init__(self, base_path: str = '/data'):
-        """
-        初始化管理器
-
-        Args:
-            base_path: 數據根目錄
-        """
+    def __init__(self, base_path: str = 'data'):
         self.base_path = Path(base_path)
+        self.daily_path = self.base_path / 'daily'
+        self.history_path = self.base_path / 'history'
+        self.fundamentals_path = self.base_path / 'fundamentals'
+        self.chips_path = self.base_path / 'chips'
+        self.shareholding_path = self.base_path / 'shareholding'
+        
+        # 建立目錄
+        self.daily_path.mkdir(parents=True, exist_ok=True)
+        self.history_path.mkdir(parents=True, exist_ok=True)
+        self.fundamentals_path.mkdir(parents=True, exist_ok=True)
+        self.chips_path.mkdir(parents=True, exist_ok=True)
+        self.shareholding_path.mkdir(parents=True, exist_ok=True)
+        
         self.logger = logging.getLogger(__name__)
 
-    def write_time_partition(
-        self,
-        data: pd.DataFrame,
-        partition_date: str
-    ):
-        """
-        寫入時間分區
+    def write_time_partition(self, data: pd.DataFrame, partition_date: str):
+        """寫入時間分區 /data/daily/date=YYYY-MM-DD/"""
+        path = self.daily_path / f"date={partition_date}"
+        path.mkdir(parents=True, exist_ok=True)
+        
+        file_path = path / "data.parquet"
+        data.to_parquet(file_path, engine='pyarrow', compression='snappy', index=False)
+        self.logger.info(f"成功寫入時間分區: {file_path}")
 
-        Args:
-            data: 數據 DataFrame
-            partition_date: 分區日期 ("2024-01-01")
-        """
-        # TODO: 實作時間分區寫入邏輯
-        pass
+    def write_symbol_partition(self, data: pd.DataFrame, symbol: str):
+        """寫入個股分區 /data/history/symbol=XXXX/"""
+        path = self.history_path / f"symbol={symbol}"
+        path.mkdir(parents=True, exist_ok=True)
+        
+        file_path = path / "data.parquet"
+        data.to_parquet(file_path, engine='pyarrow', compression='snappy', index=False)
+        self.logger.debug(f"成功寫入個股分區: {file_path}")
 
-    def write_symbol_partition(
-        self,
-        data: pd.DataFrame,
-        symbol: str
-    ):
-        """
-        寫入個股分區
-
-        Args:
-            data: 該股票歷史數據
-            symbol: 股票代碼
-        """
-        # TODO: 實作個股分區寫入邏輯
-        pass
-
-    def read_time_partition(
-        self,
-        start_date: str,
-        end_date: str
-    ) -> pd.DataFrame:
-        """
-        讀取時間分區範圍數據
-
-        Args:
-            start_date: 開始日期
-            end_date: 結束日期
-
-        Returns:
-            DataFrame: 合併後的數據
-        """
-        # TODO: 實作時間分區讀取邏輯
-        pass
+    def read_time_partition(self, start_date: str, end_date: str = None) -> pd.DataFrame:
+        """讀取時間分區範圍數據"""
+        if end_date is None:
+            end_date = start_date
+            
+        dataset = pq.ParquetDataset(
+            self.daily_path,
+            filters=[('date', '>=', start_date), ('date', '<=', end_date)]
+        )
+        return dataset.read().to_pandas()
 
     def read_symbol_partition(self, symbol: str) -> pd.DataFrame:
-        """
-        讀取個股分區數據
+        """讀取個股分區數據"""
+        file_path = self.history_path / f"symbol={symbol}" / "data.parquet"
+        if not file_path.exists():
+            self.logger.warning(f"找不到股個分區數據: {symbol}")
+            return pd.DataFrame()
+        return pd.read_parquet(file_path)
 
-        Args:
-            symbol: 股票代碼
+    def transpose_to_symbol_partition(self, date_str: str):
+        """將時間分區轉置為個股分區 (ETL)"""
+        self.logger.info(f"開始轉置 {date_str} 的數據至個股分區...")
+        
+        # 1. 讀取該日的每日數據
+        daily_file = self.daily_path / f"date={date_str}" / "data.parquet"
+        if not daily_file.exists():
+            self.logger.error(f"找不到每日數據檔案: {daily_file}")
+            return
+            
+        daily_df = pd.read_parquet(daily_file)
+        
+        # 2. 按股票代碼遍歷並附加到個股檔案
+        for symbol, group in daily_df.groupby('symbol'):
+            self._append_to_history(symbol, group)
+            
+        self.logger.info(f"轉置完成: {date_str}")
 
-        Returns:
-            DataFrame: 該股票歷史數據
-        """
-        # TODO: 實作個股分區讀取邏輯
-        pass
+    def _append_to_history(self, symbol: str, new_data: pd.DataFrame):
+        """輔助函數：將新數據附加到個股歷史檔案並去重"""
+        path = self.history_path / f"symbol={symbol}"
+        path.mkdir(parents=True, exist_ok=True)
+        file_path = path / "data.parquet"
+        
+        if file_path.exists():
+            history_df = pd.read_parquet(file_path)
+            # 合併並去重
+            combined_df = pd.concat([history_df, new_data]).drop_duplicates(subset=['date'], keep='last')
+            combined_df = combined_df.sort_values('date')
+        else:
+            combined_df = new_data.sort_values('date')
+            
+        combined_df.to_parquet(file_path, engine='pyarrow', compression='snappy', index=False)
 
-    def transpose_to_symbol_partition(self, date: str):
-        """
-        將時間分區轉置為個股分區
+    def write_fundamental_data(self, symbol: str, data: pd.DataFrame):
+        """寫入財務報表數據"""
+        path = self.fundamentals_path / f"symbol={symbol}"
+        path.mkdir(parents=True, exist_ok=True)
+        file_path = path / "data.parquet"
+        data.to_parquet(file_path, engine='pyarrow', compression='snappy', index=False)
+        self.logger.info(f"成功寫入財務數據: {file_path}")
 
-        Args:
-            date: 要轉置的日期
-        """
-        # TODO: 實作ETL轉置邏輯
-        pass
+    def read_fundamental_data(self, symbol: str) -> pd.DataFrame:
+        """讀取財務報表數據"""
+        file_path = self.fundamentals_path / f"symbol={symbol}" / "data.parquet"
+        if not file_path.exists():
+            self.logger.warning(f"找不到財務數據: {symbol}")
+            return pd.DataFrame()
+        return pd.read_parquet(file_path)
+
+    def write_chip_data(self, symbol: str, data: pd.DataFrame):
+        """寫入籌碼數據 (三大法人買賣超) - 支援附加與去重"""
+        path = self.chips_path / f"symbol={symbol}"
+        path.mkdir(parents=True, exist_ok=True)
+        file_path = path / "data.parquet"
+        
+        if file_path.exists():
+            history_df = pd.read_parquet(file_path)
+            combined_df = pd.concat([history_df, data]).drop_duplicates(subset=['date'], keep='last')
+            combined_df = combined_df.sort_values('date')
+        else:
+            combined_df = data.sort_values('date')
+            
+        combined_df.to_parquet(file_path, engine='pyarrow', compression='snappy', index=False)
+
+    def read_chip_data(self, symbol: str) -> pd.DataFrame:
+        """讀取籌碼數據"""
+        file_path = self.chips_path / f"symbol={symbol}" / "data.parquet"
+        if not file_path.exists():
+            return pd.DataFrame()
+        return pd.read_parquet(file_path)
+
+    def write_shareholding_data(self, symbol: str, data: pd.DataFrame):
+        """寫入大戶持股數據 - 支援附加與去重"""
+        path = self.shareholding_path / f"symbol={symbol}"
+        path.mkdir(parents=True, exist_ok=True)
+        file_path = path / "data.parquet"
+        
+        if file_path.exists():
+            history_df = pd.read_parquet(file_path)
+            combined_df = pd.concat([history_df, data]).drop_duplicates(subset=['date'], keep='last')
+            combined_df = combined_df.sort_values('date')
+        else:
+            combined_df = data.sort_values('date')
+            
+        combined_df.to_parquet(file_path, engine='pyarrow', compression='snappy', index=False)
+
+
+    def read_shareholding_data(self, symbol: str) -> pd.DataFrame:
+        """讀取大戶持股數據"""
+        file_path = self.shareholding_path / f"symbol={symbol}" / "data.parquet"
+        if not file_path.exists():
+            return pd.DataFrame()
+        return pd.read_parquet(file_path)
 
     def cleanup_old_data(self, keep_days: int = 30):
-        """
-        清理舊的時間分區數據
-
-        Args:
-            keep_days: 保留天數
-        """
-        # TODO: 實作清理邏輯
+        """清理舊的時間分區數據"""
+        # 這裡實作簡單的目錄刪除邏輯
+        self.logger.info(f"清理 {keep_days} 天前的舊數據...")
+        # TODO: 實作日期判斷與刪除
         pass
 
-
 if __name__ == '__main__':
+    logging.basicConfig(level=logging.INFO)
     print("ParquetManager 模組已載入")
+

@@ -16,7 +16,7 @@ def mock_data_manager():
 
     # 模擬財報數據
     manager.read_parquet.return_value = pd.DataFrame({
-        'date': pd.date_range('2023-01-01', periods=8, freq='Q'),
+        'date': pd.date_range('2023-01-01', periods=8, freq='QE'),
         'net_income': [1000, 1100, 1200, 1300, 1400, 1500, 1600, 1700],
         'equity': [5000, 5200, 5400, 5600, 5800, 6000, 6200, 6400],
         'eps': [2.0, 2.2, 2.4, 2.6, 2.8, 3.0, 3.2, 3.4]
