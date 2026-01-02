@@ -1,0 +1,273 @@
+/* Markdown Preview Enhanced 黑底白字主题 */
+
+.markdown-preview.markdown-preview {
+  /* 背景颜色 - 深黑色 */
+  background-color: #1e1e1e;
+  color: #d4d4d4;
+
+  /* 标题样式 */
+  h1,
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    color: #ffffff;
+    border-bottom-color: #404040;
+  }
+
+  /* 链接 */
+  a {
+    color: #4ec9b0;
+  }
+
+  a:hover {
+    color: #6fdcc8;
+  }
+
+  /* 代码块 */
+  code {
+    background-color: #2d2d2d;
+    color: #ce9178;
+    padding: 2px 6px;
+    border-radius: 3px;
+  }
+
+  pre {
+    background-color: #2d2d2d;
+    border: 1px solid #404040;
+
+    code {
+      background-color: transparent;
+      color: #d4d4d4;
+    }
+  }
+
+  /* 引用块 */
+  blockquote {
+    background-color: #2d2d2d;
+    border-left-color: #4ec9b0;
+    color: #b0b0b0;
+  }
+
+  /* 表格 */
+  table {
+    background-color: transparent;
+
+    thead {
+      background-color: #2d2d2d;
+
+      th {
+        color: #ffffff;
+        border-color: #404040;
+      }
+    }
+
+    tbody {
+      tr {
+        background-color: #252525;
+
+        &:nth-child(2n) {
+          background-color: #2d2d2d;
+        }
+
+        td {
+          border-color: #404040;
+          color: #d4d4d4;
+        }
+      }
+    }
+  }
+
+  /* 水平线 */
+  hr {
+    background-color: #404040;
+    border-color: #404040;
+  }
+
+  /* 列表 */
+  ul,
+  ol {
+    color: #d4d4d4;
+  }
+
+  /* 任务列表 */
+  .task-list-item-checkbox {
+    filter: brightness(1.2);
+  }
+
+  /* 强调文本 */
+  strong {
+    color: #ffffff;
+  }
+
+  em {
+    color: #ce9178;
+  }
+
+  /* Mermaid 图表 - 深色主题强制覆盖 */
+  .mermaid {
+    background-color: #1e1e1e !important;
+
+    svg {
+      background-color: #1e1e1e !important;
+
+      /* 所有文字颜色 */
+      text {
+        fill: #e0e0e0 !important;
+      }
+
+      /* 节点样式 */
+      .node rect,
+      .node circle,
+      .node ellipse,
+      .node polygon {
+        fill: #2d2d2d !important;
+        stroke: #4ec9b0 !important;
+        stroke-width: 2px !important;
+      }
+
+      /* 节点文字 */
+      .nodeLabel {
+        color: #ffffff !important;
+      }
+
+      /* 连接线 */
+      .edgePath path,
+      .flowchart-link {
+        stroke: #4ec9b0 !important;
+        stroke-width: 2px !important;
+      }
+
+      /* 箭头 */
+      .arrowheadPath,
+      marker path {
+        fill: #4ec9b0 !important;
+        stroke: #4ec9b0 !important;
+      }
+
+      /* 标签背景 */
+      .edgeLabel,
+      .edgeLabel rect {
+        background-color: #1e1e1e !important;
+        fill: #1e1e1e !important;
+        color: #e0e0e0 !important;
+      }
+
+      /* 标签文字 */
+      .edgeLabel span,
+      .edgeLabel p {
+        background-color: #1e1e1e !important;
+        color: #e0e0e0 !important;
+      }
+
+      /* Cluster (子图) */
+      .cluster rect {
+        fill: #252525 !important;
+        stroke: #404040 !important;
+      }
+
+      .cluster text {
+        fill: #ffffff !important;
+      }
+
+      /* Sequence Diagram 样式 */
+      .actor {
+        fill: #2d2d2d !important;
+        stroke: #4ec9b0 !important;
+      }
+
+      .actor-line {
+        stroke: #4ec9b0 !important;
+      }
+
+      .messageLine0,
+      .messageLine1 {
+        stroke: #4ec9b0 !important;
+      }
+
+      .messageText {
+        fill: #e0e0e0 !important;
+        stroke: none !important;
+      }
+
+      .labelBox {
+        fill: #2d2d2d !important;
+        stroke: #4ec9b0 !important;
+      }
+
+      .labelText {
+        fill: #e0e0e0 !important;
+      }
+
+      .loopText {
+        fill: #e0e0e0 !important;
+      }
+
+      .loopLine {
+        stroke: #4ec9b0 !important;
+      }
+
+      .note {
+        fill: #2d2d2d !important;
+        stroke: #4ec9b0 !important;
+      }
+
+      .noteText {
+        fill: #e0e0e0 !important;
+      }
+
+      /* Class Diagram 样式 */
+      .classGroup rect {
+        fill: #2d2d2d !important;
+        stroke: #4ec9b0 !important;
+      }
+
+      .classGroup text {
+        fill: #e0e0e0 !important;
+      }
+
+      .classGroup line {
+        stroke: #4ec9b0 !important;
+      }
+
+      /* State Diagram 样式 */
+      .statediagram-state rect {
+        fill: #2d2d2d !important;
+        stroke: #4ec9b0 !important;
+      }
+
+      .statediagram-state text {
+        fill: #e0e0e0 !important;
+      }
+
+      .transition {
+        stroke: #4ec9b0 !important;
+      }
+
+      /* Flowchart 样式 */
+      .flowchart-label {
+        color: #ffffff !important;
+      }
+
+      /* 标题 */
+      .titleText {
+        fill: #ffffff !important;
+      }
+
+      /* Grid lines */
+      .grid .tick line {
+        stroke: #404040 !important;
+      }
+
+      .grid .tick text {
+        fill: #808080 !important;
+      }
+    }
+  }
+
+  /* 图片 */
+  img {
+    background-color: transparent;
+  }
+}
