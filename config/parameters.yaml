@@ -1,0 +1,45 @@
+# 選股策略參數
+screening:
+  universe_size: 500              # 候選池大小
+  fundamental_top_n: 30           # 基本面篩選 Top N
+
+  # 因子權重設定
+  factor_weights:
+    roe: 0.10
+    gross_margin_trend: 0.05
+    debt_ratio: 0.05
+    fcf: 0.05
+    revenue_yoy: 0.05
+    eps_yoy: 0.05
+    pe_relative: 0.05
+
+  # 籌碼面門檻
+  chips:
+    institutional_net_days: 5     # 法人買賣超天數
+    major_holder_threshold: 0     # 大戶持股變化門檻
+
+  # 技術面門檻
+  technical:
+    bias_low: 0                   # 低位階乖離率下限 (%)
+    bias_medium: 10               # 中位階乖離率上限 (%)
+    bias_high: 20                 # 高位階乖離率上限 (%)
+    ma_period: 60                 # 移動平均線週期
+    rsi_period: 14                # RSI 週期
+    kd_period: 9                  # KD 週期
+
+# 數據更新設定
+data_update:
+  schedule_time: "15:00"          # 每日更新時間
+  retry_count: 3                  # 失敗重試次數
+  retry_delay: 5                  # 重試間隔（秒）
+
+# 策略執行設定
+strategy:
+  schedule_time: "16:00"          # 每日執行時間
+  notification_enabled: true      # 是否啟用通知
+
+# 日誌設定
+logging:
+  level: "INFO"                   # DEBUG, INFO, WARNING, ERROR
+  max_file_size_mb: 10            # 單個日誌檔案最大大小
+  backup_count: 5                 # 保留備份數量

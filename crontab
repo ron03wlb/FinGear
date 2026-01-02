@@ -1,0 +1,9 @@
+# FinGear 自動化排程
+# 每日 15:00 更新數據
+0 15 * * 1-5 cd /app && python scripts/update_data.py >> /logs/update.log 2>&1
+
+# 每日 16:00 執行選股策略
+0 16 * * 1-5 cd /app && python scripts/run_strategy.py >> /logs/strategy.log 2>&1
+
+# 每週日凌晨 2:00 清理舊日誌
+0 2 * * 0 find /logs -name "*.log" -mtime +30 -delete

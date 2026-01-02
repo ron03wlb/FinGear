@@ -1,0 +1,79 @@
+# Python 編譯檔案與快取
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# 虛擬環境
+venv/
+env/
+ENV/
+.venv/
+fingear_env/
+
+# IDE 設定（VS Code 除外）
+.idea/
+*.swp
+*.swo
+*~
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# 環境變數與敏感資訊
+.env
+.env.local
+config/api_keys.json
+config/secrets.yaml
+
+# 數據目錄（不追蹤大型數據檔案）
+data/daily/
+data/history/
+data/fundamentals/
+data/chips/
+data/raw/
+data/market_cap/
+*.parquet
+*.csv
+*.h5
+
+# 日誌檔案
+logs/
+*.log
+
+# 報告與輸出（可選擇性追蹤）
+reports/selections/*.csv
+reports/performance/*.csv
+reports/backtest/*.html
+
+# 臨時檔案
+temp/
+tmp/
+*.tmp
+
+# macOS
+.DS_Store
+
+# Windows
+Thumbs.db
+desktop.ini
+
+# 備份檔案
+backups/
+*.bak

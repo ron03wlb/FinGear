@@ -1,0 +1,14 @@
+version: '3.8'
+
+services:
+  fingear:
+    build: .
+    container_name: fingear
+    volumes:
+      - ./data:/data
+      - ./logs:/logs
+      - ./reports:/reports
+      - ./config:/app/config
+    environment:
+      - TZ=Asia/Taipei
+    restart: unless-stopped
