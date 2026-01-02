@@ -3,6 +3,9 @@
     "api_key": "YOUR_API_KEY_HERE",
     "secret_key": "YOUR_SECRET_KEY_HERE"
   },
+  "finmind": {
+    "token": "YOUR_FINMIND_TOKEN_HERE"
+  },
   "line_notify": {
     "token": "YOUR_LINE_NOTIFY_TOKEN_HERE"
   },
