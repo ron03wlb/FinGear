@@ -3,15 +3,15 @@ screening:
   universe_size: 500              # 候選池大小
   fundamental_top_n: 30           # 基本面篩選 Top N
 
-  # 因子權重設定
+  # 因子權重設定（總和必須為 1.0）
   factor_weights:
-    roe: 0.20
-    eps_yoy: 0.20
-    fcf: 0.15
-    gross_margin_trend: 0.15
-    revenue_yoy: 0.10
-    debt_ratio: 0.10
-    pe_relative: 0.10
+    roe: 0.15              # ROE 股東權益報酬率 15%
+    eps_yoy: 0.15          # EPS 年增率 15%
+    fcf: 0.10              # 自由現金流 10%
+    gross_margin_trend: 0.10  # 毛利率趨勢 10%
+    revenue_yoy: 0.10      # 營收年增率 10%
+    debt_ratio: 0.10       # 負債比率 10%
+    pe_relative: 0.30      # PE 相對估值 30% (強調估值因子)
 
   # 籌碼面門檻
   chips:

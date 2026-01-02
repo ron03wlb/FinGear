@@ -520,7 +520,7 @@ flowchart TD
     CALC_EPS_YoY --> SCORE_EPS[評分 EPS YoY<br/>1-5 分]
     CALC_PE --> SCORE_PE[評分 P/E<br/>1-5 分]
 
-    SCORE_ROE --> AGGREGATE[加權聚合<br/>ROE×10% + 毛利率×5% + ...]
+    SCORE_ROE --> AGGREGATE[加權聚合<br/>依 config/parameters.yaml]
     SCORE_MARGIN --> AGGREGATE
     SCORE_DEBT --> AGGREGATE
     SCORE_FCF --> AGGREGATE
@@ -528,12 +528,45 @@ flowchart TD
     SCORE_EPS --> AGGREGATE
     SCORE_PE --> AGGREGATE
 
-    AGGREGATE --> TOTAL_SCORE[基本面總分<br/>0-200 分]
+    AGGREGATE --> TOTAL_SCORE[基本面總分<br/>0-200 分<br/>PE估值權重30%]
     TOTAL_SCORE --> CACHE[寫入緩存<br/>Redis / 記憶體]
     CACHE --> END([完成])
 ```
 
-#### 3.2.2 七因子實作架構
+#### 3.2.2 因子權重配置
+
+**當前配置** (2026-01-03 更新，定義於 `config/parameters.yaml`)：
+
+| 因子 | 權重 | 說明 | 評分標準 (1-5分) |
+|------|------|------|------------------|
+| **PE 相對估值** | **30%** | 當前 PE ÷ 歷史中位數 PE | PE < 0.6倍=5分, 0.6-1.0=4分, 1.0-1.4=3分, 1.4-1.8=2分, >1.8=1分 |
+| ROE 股東權益報酬率 | 15% | TTM 稅後淨利 ÷ 平均股東權益 | ROE ≥20%=5分, 15-20%=4分, 10-15%=3分, 5-10%=2分, <5%=1分 |
+| EPS 年增率 | 15% | (本季 EPS - 去年同季) ÷ 去年同季 | YoY ≥30%=5分, 15-30%=4分, 0-15%=3分, -10-0%=2分, <-10%=1分 |
+| 自由現金流 (FCF) | 10% | 營業現金流 - 資本支出 | FCF > 0=4分, FCF ≤ 0=1分 |
+| 毛利率趨勢 | 10% | 最近一季毛利率 vs 去年同季 | 改善 >1.5%=5分, 0.5-1.5%=4分, -0.5-0.5%=3分, -1.5--0.5%=2分, <-1.5%=1分 |
+| 營收年增率 | 10% | (本季營收 - 去年同季) ÷ 去年同季 | YoY ≥20%=5分, 10-20%=4分, 0-10%=3分, -5-0%=2分, <-5%=1分 |
+| 負債比率 | 10% | 總負債 ÷ 總資產 | 負債比 ≤30%=5分, 30-45%=4分, 45-60%=3分, 60-75%=2分, >75%=1分 |
+| **總和** | **100%** | | |
+
+**綜合評分公式**：
+
+```
+基本面總分 = (
+    ROE評分 × 0.15 +
+    EPS_YoY評分 × 0.15 +
+    FCF評分 × 0.10 +
+    毛利率趨勢評分 × 0.10 +
+    營收_YoY評分 × 0.10 +
+    負債比率評分 × 0.10 +
+    PE相對估值評分 × 0.30  ⭐ 強調估值
+) × 40
+
+分數範圍：40-200 分
+```
+
+> **設計理念**：30% 的 PE 估值權重確保系統優先選擇低估值標的，降低追高風險。搭配盈利能力 (ROE 15%) 和成長性 (EPS YoY 15%)，形成價值投資導向的選股策略。
+
+#### 3.2.3 七因子實作架構
 
 ```python
 # 偽代碼：FactorEngine 架構
@@ -588,15 +621,19 @@ class FactorEngine:
             raw_value = calc_func(symbol)
             scores[factor_name] = self._score_factor(factor_name, raw_value)
 
-        # 步驟 3: 加權聚合
+        # 步驟 3: 加權聚合（從 config/parameters.yaml 讀取）
+        # 當前權重配置（2026-01-03 更新）：
+        #   - PE 相對估值: 30% (強調估值因子)
+        #   - ROE: 15%, EPS YoY: 15%
+        #   - FCF/毛利率趨勢/營收YoY/負債比率: 各 10%
         total_score = (
-            scores['roe'] * 0.10 +
-            scores['gross_margin_trend'] * 0.05 +
-            scores['debt_ratio'] * 0.05 +
-            scores['fcf'] * 0.05 +
-            scores['revenue_yoy'] * 0.05 +
-            scores['eps_yoy'] * 0.05 +
-            scores['pe_relative'] * 0.05
+            scores['roe'] * 0.15 +
+            scores['eps_yoy'] * 0.15 +
+            scores['fcf'] * 0.10 +
+            scores['gross_margin_trend'] * 0.10 +
+            scores['revenue_yoy'] * 0.10 +
+            scores['debt_ratio'] * 0.10 +
+            scores['pe_relative'] * 0.30  # ⭐ 強調估值
         ) * 100
 
         # 步驟 4: 寫入緩存

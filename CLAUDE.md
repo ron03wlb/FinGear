@@ -25,9 +25,24 @@ The system uses a **dual-partition strategy** for Parquet files:
 
 The `StockScreener` (Pipeline Pattern) processes stocks through:
 
-1. **Layer 1 - Fundamental**: `FactorEngine` calculates 7 weighted factors (ROE, EPS YoY, FCF, etc.) → Top 30 from Top 500
-2. **Layer 2 - Chips**: Validates institutional trading (5-day net buy) + major holder changes
-3. **Layer 3 - Technical**: Calculates bias ratio vs MA60, KD crossover → Generates buy/sell/hold signals
+1. **Layer 1 - Fundamental**: `FactorEngine` calculates 7 weighted factors → Top 30 from Top 500
+   - **Factor Weights** (configured in `config/parameters.yaml`):
+     - PE Relative: **30%** (emphasizes valuation)
+     - ROE: 15%, EPS YoY: 15%
+     - FCF: 10%, Gross Margin Trend: 10%, Revenue YoY: 10%, Debt Ratio: 10%
+   - Score range: 40-200 points
+
+2. **Layer 2 - Chips**: Multi-factor scoring system (0-100 points)
+   - Institutional consecutive buying days (30%)
+   - Foreign investor position (25%)
+   - Dealer activity (15%)
+   - Total institutional strength (20%)
+   - Major holder trend (10%)
+   - Pass threshold: ≥ 60 points
+
+3. **Layer 3 - Technical**: Multi-factor scoring system (0-100 points)
+   - MA trend (25%), MACD momentum (20%), RSI (15%), KD (15%), Volume (15%), Bollinger Bands (10%)
+   - Signals: STRONG_BUY (≥65), BUY (50-64), WATCH (35-49), HOLD/REDUCE (<35)
 
 ### Design Patterns in Use
 
