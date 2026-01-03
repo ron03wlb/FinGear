@@ -57,7 +57,7 @@ python scripts/update_data.py
 
 ## 專案結構
 
-詳細架構請參閱 [Requirement/Overview.md](Requirement/Overview.md)
+詳細架構請參閱 [docs/Overview.md](docs/Overview.md)
 
 ```
 FinGear/
@@ -93,20 +93,20 @@ FinGear/
 
 ## 文檔
 
-- [系統總覽與建置指南](Requirement/Overview.md)
-- [實作架構文件](Requirement/Implementation.md)
-- [財務指標定義](Requirement/FunctionalIndicators.md)
+- [系統總覽與建置指南](docs/Overview.md)
+- [實作架構文件](docs/Implementation.md)
+- [財務指標定義](docs/FunctionalIndicators.md)
 
 ## 技術棧
 
-| 層級 | 技術選型 |
-|------|---------|
-| 程式語言 | Python 3.8+ |
-| 行情 API | Shioaji (永豐金) |
-| 數據儲存 | Apache Parquet |
-| 數據處理 | pandas, numpy |
-| 技術指標 | pandas-ta / ta-lib |
-| 排程管理 | schedule |
+| 層級     | 技術選型                  |
+| -------- | ------------------------- |
+| 程式語言 | Python 3.8+               |
+| 行情 API | Shioaji (永豐金)          |
+| 數據儲存 | Apache Parquet            |
+| 數據處理 | pandas, numpy             |
+| 技術指標 | pandas-ta / ta-lib        |
+| 排程管理 | schedule                  |
 | 通知推送 | Line Notify, Telegram Bot |
 
 ## 授權條款

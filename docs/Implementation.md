@@ -9,33 +9,33 @@
 
 ### 核心模組索引
 
-| 模組                       | 位置      | 說明                             |
-| -------------------------- | --------- | -------------------------------- |
-| [系統架構總覽](#2-系統架構總覽) | 第 2 章   | 整體架構、數據流、技術棧         |
-| [API 客戶端](#31-api-客戶端模組) | 第 3.1 節 | Shioaji API 封裝與錯誤處理       |
-| [因子計算引擎](#32-因子計算引擎) | 第 3.2 節 | 7 因子計算邏輯與緩存策略         |
-| [選股篩選器](#33-選股篩選器)    | 第 3.3 節 | 三層篩選邏輯與綜合評分模型       |
-| [數據管道](#34-數據管道)        | 第 3.4 節 | ETL 流程與 Parquet 分區管理      |
-| [自動化腳本](#4-自動化腳本設計) | 第 4 章   | 每日更新、策略掃描、通知推送     |
-| [測試與驗證](#5-測試與驗證)     | 第 5 章   | 單元測試、數據驗證、回測框架     |
-| [部署與運維](#6-部署與運維)     | 第 6 章   | Docker 容器化、監控、錯誤恢復    |
+| 模組                             | 位置      | 說明                          |
+| -------------------------------- | --------- | ----------------------------- |
+| [系統架構總覽](#2-系統架構總覽)  | 第 2 章   | 整體架構、數據流、技術棧      |
+| [API 客戶端](#31-api-客戶端模組) | 第 3.1 節 | Shioaji API 封裝與錯誤處理    |
+| [因子計算引擎](#32-因子計算引擎) | 第 3.2 節 | 7 因子計算邏輯與緩存策略      |
+| [選股篩選器](#33-選股篩選器)     | 第 3.3 節 | 三層篩選邏輯與綜合評分模型    |
+| [數據管道](#34-數據管道)         | 第 3.4 節 | ETL 流程與 Parquet 分區管理   |
+| [自動化腳本](#4-自動化腳本設計)  | 第 4 章   | 每日更新、策略掃描、通知推送  |
+| [測試與驗證](#5-測試與驗證)      | 第 5 章   | 單元測試、數據驗證、回測框架  |
+| [部署與運維](#6-部署與運維)      | 第 6 章   | Docker 容器化、監控、錯誤恢復 |
 
 ### 關鍵圖表清單
 
-| 圖表名稱                         | 類型       | 位置        |
-| -------------------------------- | ---------- | ----------- |
-| 系統整體架構圖                   | Mermaid    | 第 2.1 節   |
-| 模組依賴關係圖                   | Mermaid    | 第 2.2 節   |
-| 數據流向圖                       | Mermaid    | 第 2.3 節   |
-| API 連線時序圖                   | Sequence   | 第 3.1.2 節 |
-| 因子計算流程圖                   | Flowchart  | 第 3.2.1 節 |
-| 三層篩選狀態機圖                 | State      | 第 3.3.2 節 |
-| ETL 管道流程圖                   | Flowchart  | 第 3.4.1 節 |
-| 每日更新執行流程圖               | Flowchart  | 第 4.1.1 節 |
-| 測試金字塔圖                     | Diagram    | 第 5.1.1 節 |
-| 回測流程圖                       | Flowchart  | 第 5.3.1 節 |
-| 部署架構圖                       | C4 Model   | 第 6.1 節   |
-| 完整類別關係圖（UML）            | Class      | 第 7.1 節   |
+| 圖表名稱              | 類型      | 位置        |
+| --------------------- | --------- | ----------- |
+| 系統整體架構圖        | Mermaid   | 第 2.1 節   |
+| 模組依賴關係圖        | Mermaid   | 第 2.2 節   |
+| 數據流向圖            | Mermaid   | 第 2.3 節   |
+| API 連線時序圖        | Sequence  | 第 3.1.2 節 |
+| 因子計算流程圖        | Flowchart | 第 3.2.1 節 |
+| 三層篩選狀態機圖      | State     | 第 3.3.2 節 |
+| ETL 管道流程圖        | Flowchart | 第 3.4.1 節 |
+| 每日更新執行流程圖    | Flowchart | 第 4.1.1 節 |
+| 測試金字塔圖          | Diagram   | 第 5.1.1 節 |
+| 回測流程圖            | Flowchart | 第 5.3.1 節 |
+| 部署架構圖            | C4 Model  | 第 6.1 節   |
+| 完整類別關係圖（UML） | Class     | 第 7.1 節   |
 
 ---
 
@@ -183,28 +183,28 @@ flowchart TD
 
 #### 核心技術棧
 
-| 層級           | 技術選型                        | 版本要求    |
-| -------------- | ------------------------------- | ----------- |
-| 程式語言       | Python                          | 3.8+        |
-| 數據處理       | pandas, numpy                   | Latest      |
-| 數據儲存       | Apache Parquet (pyarrow)        | Latest      |
-| API 客戶端     | Shioaji SDK                     | Latest      |
-| 技術指標計算   | pandas-ta / ta-lib (optional)   | Latest      |
-| 排程管理       | schedule                        | Latest      |
-| 通知推送       | requests (Line), python-telegram-bot | Latest |
-| 測試框架       | pytest, pytest-mock             | Latest      |
-| 日誌記錄       | logging (內建)                  | -           |
+| 層級         | 技術選型                             | 版本要求 |
+| ------------ | ------------------------------------ | -------- |
+| 程式語言     | Python                               | 3.8+     |
+| 數據處理     | pandas, numpy                        | Latest   |
+| 數據儲存     | Apache Parquet (pyarrow)             | Latest   |
+| API 客戶端   | Shioaji SDK                          | Latest   |
+| 技術指標計算 | pandas-ta / ta-lib (optional)        | Latest   |
+| 排程管理     | schedule                             | Latest   |
+| 通知推送     | requests (Line), python-telegram-bot | Latest   |
+| 測試框架     | pytest, pytest-mock                  | Latest   |
+| 日誌記錄     | logging (內建)                       | -        |
 
 #### 設計模式應用
 
-| 模組               | 設計模式         | 應用說明                                   |
-| ------------------ | ---------------- | ------------------------------------------ |
-| ShioajiClient      | Singleton        | 確保 API 連線唯一性，避免重複認證         |
-| FactorEngine       | Strategy         | 不同因子計算策略可插拔                     |
-| StockScreener      | Pipeline         | 三層篩選以管道模式串接                     |
-| ParquetManager     | Repository       | 統一的數據訪問接口，隔離存儲細節           |
-| NotificationService| Observer         | 策略結果變化時通知訂閱者                   |
-| DataValidator      | Chain of Responsibility | 多個驗證規則鏈式調用               |
+| 模組                | 設計模式                | 應用說明                          |
+| ------------------- | ----------------------- | --------------------------------- |
+| ShioajiClient       | Singleton               | 確保 API 連線唯一性，避免重複認證 |
+| FactorEngine        | Strategy                | 不同因子計算策略可插拔            |
+| StockScreener       | Pipeline                | 三層篩選以管道模式串接            |
+| ParquetManager      | Repository              | 統一的數據訪問接口，隔離存儲細節  |
+| NotificationService | Observer                | 策略結果變化時通知訂閱者          |
+| DataValidator       | Chain of Responsibility | 多個驗證規則鏈式調用              |
 
 ---
 
@@ -537,16 +537,16 @@ flowchart TD
 
 **當前配置** (2026-01-03 更新，定義於 `config/parameters.yaml`)：
 
-| 因子 | 權重 | 說明 | 評分標準 (1-5分) |
-|------|------|------|------------------|
-| **PE 相對估值** | **30%** | 當前 PE ÷ 歷史中位數 PE | PE < 0.6倍=5分, 0.6-1.0=4分, 1.0-1.4=3分, 1.4-1.8=2分, >1.8=1分 |
-| ROE 股東權益報酬率 | 15% | TTM 稅後淨利 ÷ 平均股東權益 | ROE ≥20%=5分, 15-20%=4分, 10-15%=3分, 5-10%=2分, <5%=1分 |
-| EPS 年增率 | 15% | (本季 EPS - 去年同季) ÷ 去年同季 | YoY ≥30%=5分, 15-30%=4分, 0-15%=3分, -10-0%=2分, <-10%=1分 |
-| 自由現金流 (FCF) | 10% | 營業現金流 - 資本支出 | FCF > 0=4分, FCF ≤ 0=1分 |
-| 毛利率趨勢 | 10% | 最近一季毛利率 vs 去年同季 | 改善 >1.5%=5分, 0.5-1.5%=4分, -0.5-0.5%=3分, -1.5--0.5%=2分, <-1.5%=1分 |
-| 營收年增率 | 10% | (本季營收 - 去年同季) ÷ 去年同季 | YoY ≥20%=5分, 10-20%=4分, 0-10%=3分, -5-0%=2分, <-5%=1分 |
-| 負債比率 | 10% | 總負債 ÷ 總資產 | 負債比 ≤30%=5分, 30-45%=4分, 45-60%=3分, 60-75%=2分, >75%=1分 |
-| **總和** | **100%** | | |
+| 因子               | 權重     | 說明                             | 評分標準 (1-5分)                                                   |
+| ------------------ | -------- | -------------------------------- | ------------------------------------------------------------------ |
+| **PE 相對估值**    | **30%**  | 當前 PE 與歷史 PE 帶寬之比 (std) | ≤ -1.0=5分, ≤ 0.0=4分, ≤ 1.0=3分, ≤ 2.0=2分, > 2.0=1分             |
+| ROE 股東權益報酬率 | 15%      | TTM 稅後淨利 ÷ 平均股東權益      | ≥ 20%=5分, ≥ 15%=4分, ≥ 10%=3分, ≥ 5%=2分, < 5%=1分                |
+| EPS 年增率         | 15%      | (本季 EPS - 去年同季) ÷          | 去年同季                                                           |  | ≥ 30%=5分, ≥ 15%=4分, ≥ 0%=3分, ≥ -10%=2分, < -10%=1分 |
+| 自由現金流 (FCF)   | 10%      | 營業現金流 - 資本支出            | ≥ 50億=5分, ≥ 10億=4分, ≥ 0=3分, ≥ -10億=2分, < -10億=1分          |
+| 毛利率趨勢         | 10%      | 最近一季毛利率 vs 去年同季       | 改善 ≥ 2.0%=5分, ≥ 0.5%=4分, ≥ -0.5%=3分, ≥ -2.0%=2分, < -2.0%=1分 |
+| 營收年增率         | 10%      | (本季營收 - 去年同季) ÷ 去年同季 | ≥ 20%=5分, ≥ 10%=4分, ≥ 0%=3分, ≥ -5%=2分, < -5%=1分               |
+| 負債比率           | 10%      | 總負債 ÷ 總資產                  | ≤ 30%=5分, ≤ 50%=4分, ≤ 70%=3分, ≤ 85%=2分, > 85%=1分              |
+| **總和**           | **100%** |                                  |                                                                    |
 
 **綜合評分公式**：
 
@@ -2894,33 +2894,33 @@ classDiagram
 
 #### ShioajiClient API
 
-| 方法                     | 參數                          | 返回值      | 說明             |
-| ------------------------ | ----------------------------- | ----------- | ---------------- |
-| `connect()`              | -                             | bool        | 建立API連線      |
-| `disconnect()`           | -                             | void        | 斷開連線         |
-| `get_historical_data()`  | symbol, start_date, end_date  | DataFrame   | 取得歷史K線      |
-| `get_stock_snapshot()`   | symbol                        | DataFrame   | 取得即時快照     |
-| `get_institutional_trades()` | date                      | DataFrame   | 取得法人買賣超   |
+| 方法                         | 參數                         | 返回值    | 說明           |
+| ---------------------------- | ---------------------------- | --------- | -------------- |
+| `connect()`                  | -                            | bool      | 建立API連線    |
+| `disconnect()`               | -                            | void      | 斷開連線       |
+| `get_historical_data()`      | symbol, start_date, end_date | DataFrame | 取得歷史K線    |
+| `get_stock_snapshot()`       | symbol                       | DataFrame | 取得即時快照   |
+| `get_institutional_trades()` | date                         | DataFrame | 取得法人買賣超 |
 
 #### ParquetManager API
 
-| 方法                     | 參數                          | 返回值      | 說明             |
-| ------------------------ | ----------------------------- | ----------- | ---------------- |
-| `write_time_partition()` | data, partition_date          | void        | 寫入時間分區     |
-| `write_symbol_partition()` | data, symbol                | void        | 寫入個股分區     |
-| `read_time_partition()`  | start_date, end_date          | DataFrame   | 讀取時間分區     |
-| `read_symbol_partition()` | symbol                       | DataFrame   | 讀取個股分區     |
-| `transpose_to_symbol_partition()` | date             | void        | ETL轉置          |
+| 方法                              | 參數                 | 返回值    | 說明         |
+| --------------------------------- | -------------------- | --------- | ------------ |
+| `write_time_partition()`          | data, partition_date | void      | 寫入時間分區 |
+| `write_symbol_partition()`        | data, symbol         | void      | 寫入個股分區 |
+| `read_time_partition()`           | start_date, end_date | DataFrame | 讀取時間分區 |
+| `read_symbol_partition()`         | symbol               | DataFrame | 讀取個股分區 |
+| `transpose_to_symbol_partition()` | date                 | void      | ETL轉置      |
 
 #### FactorEngine API
 
-| 方法                     | 參數                          | 返回值      | 說明             |
-| ------------------------ | ----------------------------- | ----------- | ---------------- |
-| `calculate_fundamental_score()` | symbol              | float       | 計算基本面得分   |
-| `_calculate_roe()`       | symbol                        | float       | 計算ROE          |
-| `_calculate_eps_yoy()`   | symbol                        | float       | 計算EPS YoY      |
-| `_calculate_fcf()`       | symbol                        | float       | 計算自由現金流   |
-| `_score_factor()`        | factor_name, raw_value        | int         | 因子評分         |
+| 方法                            | 參數                   | 返回值 | 說明           |
+| ------------------------------- | ---------------------- | ------ | -------------- |
+| `calculate_fundamental_score()` | symbol                 | float  | 計算基本面得分 |
+| `_calculate_roe()`              | symbol                 | float  | 計算ROE        |
+| `_calculate_eps_yoy()`          | symbol                 | float  | 計算EPS YoY    |
+| `_calculate_fcf()`              | symbol                 | float  | 計算自由現金流 |
+| `_score_factor()`               | factor_name, raw_value | int    | 因子評分       |
 
 ### 7.4 參考資源與延伸閱讀
 

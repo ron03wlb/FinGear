@@ -1,7 +1,7 @@
 """
 pytest 配置與共用 fixtures
 
-參考：Requirement/Implementation.md 第 5.1 節
+參考：docs/Implementation.md 第 5.1 節
 """
 
 import pytest

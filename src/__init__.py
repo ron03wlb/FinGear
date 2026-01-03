@@ -13,7 +13,14 @@ FinGear - 台股量化分析系統核心模組
 __version__ = "0.1.0"
 __author__ = "FinGear Team"
 
-from .api_client import ShioajiClient
+# Optional imports - only load if dependencies are available
+try:
+    from .api_client import ShioajiClient
+    _SHIOAJI_AVAILABLE = True
+except ImportError:
+    ShioajiClient = None
+    _SHIOAJI_AVAILABLE = False
+
 from .parquet_manager import ParquetManager
 from .factors import FactorEngine
 from .screener import StockScreener

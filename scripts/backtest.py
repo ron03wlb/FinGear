@@ -6,7 +6,7 @@
     - 計算績效指標（報酬率、夏普比率、最大回撤）
     - 生成視覺化報告
 
-參考：Requirement/Implementation.md 第 5.3 節
+參考：docs/Implementation.md 第 5.3 節
 """
 
 import logging

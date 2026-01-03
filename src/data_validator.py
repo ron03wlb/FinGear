@@ -7,7 +7,7 @@
 - 重複值檢測
 - 數據完整性驗證
 
-參考：Requirement/Implementation.md 第 5.2 節
+參考：docs/Implementation.md 第 5.2 節
 """
 
 import logging

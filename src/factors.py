@@ -6,7 +6,7 @@
 - 因子緩存機制
 - 評分規則引擎
 
-參考：Requirement/Implementation.md 第 3.2 節
+參考：docs/Implementation.md 第 3.2 節
 """
 
 import logging
@@ -15,6 +15,7 @@ from datetime import date
 from typing import Dict
 from pathlib import Path
 import pandas as pd
+from src.utils.exceptions import ValidationError
 
 
 class FactorEngine:
@@ -147,19 +148,45 @@ class FactorEngine:
         return df
 
     def _calculate_roe(self, symbol: str) -> float:
-        """ROE = 稅後淨利 ÷ 平均股東權益 × 100% (近四季 TTM)"""
+        """
+        計算 ROE (Return on Equity)
+        
+        ROE = 稅後淨利 (TTM) ÷ 平均股東權益 × 100%
+        
+        Args:
+            symbol: 股票代碼
+            
+        Returns:
+            ROE (百分比)
+        """
         df = self._get_fundamental_data(symbol)
         required = {'net_income', 'equity'}
-        if df.empty or not required.issubset(df.columns) or len(df) < 4:
+        
+        # 數據驗證
+        if df.empty or len(df) < 4:
+            self.logger.debug(f"Insufficient data for ROE calculation: {symbol}")
+            return 0.0
+        
+        # 檢查數據完整性
+        if not required.issubset(df.columns):
+            raise ValidationError(f"Missing columns for ROE: {required - set(df.columns)}")
+        
+        # 檢查股東權益是否有效
+        if (df['equity'].tail(4) <= 0).any():
+            self.logger.warning(f"{symbol}: Negative/zero equity detected")
             return 0.0
         
         # TTM 淨利: 最近四季加總
         ttm_net_income = df['net_income'].tail(4).sum()
-        # 平均股東權益: (期末 + 期初) / 2
-        # 這裡簡化為最近四季的平均值
+        # 平均股東權益: 最近四季的平均值
         avg_equity = df['equity'].tail(4).mean()
         
-        return (ttm_net_income / avg_equity * 100) if avg_equity > 0 else 0.0
+        if avg_equity <= 0:
+            return 0.0
+            
+        roe = (ttm_net_income / avg_equity) * 100
+        self.logger.debug(f"{symbol} ROE: {roe:.2f}%")
+        return roe
 
     def _calculate_eps_yoy(self, symbol: str) -> float:
         """EPS YoY = (本季 EPS - 去年同季 EPS) ÷ |去年同季 EPS| × 100%"""
@@ -176,15 +203,33 @@ class FactorEngine:
         return ((latest_eps - yoy_eps) / abs(yoy_eps)) * 100
 
     def _calculate_fcf(self, symbol: str) -> float:
-        """FCF = 營業現金流 - 資本支出 (近四季累計)"""
+        """
+        計算自由現金流 (Free Cash Flow)
+        
+        FCF = 營業現金流 (TTM) - 資本支出 (TTM)
+        
+        Args:
+            symbol: 股票代碼
+            
+        Returns:
+            自由現金流（元）
+        """
         df = self._get_fundamental_data(symbol)
         required = {'operating_cash_flow', 'capital_expenditure'}
+        
         if df.empty or not required.issubset(df.columns) or len(df) < 4:
+            self.logger.debug(f"Insufficient data for FCF calculation: {symbol}")
             return 0.0
         
-        ttm_ocf = df['operating_cash_flow'].tail(4).sum()
-        ttm_capex = df['capital_expenditure'].tail(4).sum()
-        return ttm_ocf - ttm_capex
+        # 處理缺失值：用 0 填充
+        df_clean = df[['operating_cash_flow', 'capital_expenditure']].fillna(0)
+        
+        ttm_ocf = df_clean['operating_cash_flow'].tail(4).sum()
+        ttm_capex = df_clean['capital_expenditure'].tail(4).sum()
+        
+        fcf = ttm_ocf - ttm_capex
+        self.logger.debug(f"{symbol} FCF: {fcf / 1e8:.2f}億")
+        return fcf
 
     def _calculate_gross_margin_trend(self, symbol: str) -> float:
         """毛利率趨勢: 最近一季 vs 去年同季 (單位: %)"""
@@ -282,24 +327,61 @@ class FactorEngine:
 
     def _score_factor(self, factor_name: str, raw_value: float) -> int:
         """
-        將因子原始值轉換為 1-5 分 (優化評分界限)
+        將因子原始值轉換為 1-5 分
+        
+        評分規則參考台股實際財務指標分佈情況調整
+        
+        Args:
+            factor_name: 因子名稱
+            raw_value: 因子原始值
+            
+        Returns:
+            評分 (1-5 分)
         """
+        # 完整評分規則：涵蓋所有 7 個因子
         scoring_rules = {
+            # ROE (%) - 越高越好
             'roe': [(20, 5), (15, 4), (10, 3), (5, 2), (-float('inf'), 1)],
+            
+            # EPS YoY (%) - 越高越好
             'eps_yoy': [(30, 5), (15, 4), (0, 3), (-10, 2), (-float('inf'), 1)],
-            'gross_margin_trend': [(1.5, 5), (0.5, 4), (-0.5, 3), (-1.5, 2), (-float('inf'), 1)],
+            
+            # FCF (億) - 越高越好，以億為單位
+            'fcf': [(5_000_000_000, 5), (1_000_000_000, 4), (0, 3), (-1_000_000_000, 2), (-float('inf'), 1)],
+            
+            # Gross Margin Trend (%) - 毛利率變化，越高越好
+            'gross_margin_trend': [(2.0, 5), (0.5, 4), (-0.5, 3), (-2.0, 2), (-float('inf'), 1)],
+            
+            # Revenue YoY (%) - 越高越好
+            'revenue_yoy': [(20, 5), (10, 4), (0, 3), (-5, 2), (-float('inf'), 1)],
+            
+            # Debt Ratio (%) - 越低越好（反向評分）
+            'debt_ratio': [(30, 5), (50, 4), (70, 3), (85, 2), (float('inf'), 1)],
+            
+            # PE Relative (標準差偏離) - 越低越好，負值表示被低估
             'pe_relative': [(-1.0, 5), (0.0, 4), (1.0, 3), (2.0, 2), (float('inf'), 1)]
         }
 
         rules = scoring_rules.get(factor_name, [])
+        
+        if not rules:
+            self.logger.warning(f"No scoring rules found for factor: {factor_name}")
+            return 3  # 預設中等分數
+        
+        # 反向評分因子（越低越好）
+        reverse_factors = ['debt_ratio', 'pe_relative']
+        
         for threshold, score in rules:
-            if factor_name in ['debt_ratio']: # 越低越好
-                if raw_value <= threshold: return score
-            elif factor_name == 'pe_relative': # 越低越好，數值為標差偏離
-                if raw_value <= threshold: return score
-            else: # 越高越好
-                if raw_value >= threshold: return score
-        return 1
+            if factor_name in reverse_factors:
+                # 越低越好：raw_value <= threshold 才能得分
+                if raw_value <= threshold:
+                    return score
+            else:
+                # 越高越好：raw_value >= threshold 才能得分
+                if raw_value >= threshold:
+                    return score
+        
+        return 1  # 最低分
 
 
 

@@ -202,7 +202,7 @@ class FinMindClient:
             
             # Ensure date column is datetime
             if 'date' in df.columns:
-                df['date'] = pd.to_datetime(df['date'])
+                df['date'] = df['date'].astype(str)
             
             self.logger.debug(f"Retrieved {len(df)} financial records for {symbol}")
             return df
@@ -250,7 +250,7 @@ class FinMindClient:
                 return pd.DataFrame()
             
             if 'date' in df.columns:
-                df['date'] = pd.to_datetime(df['date'])
+                df['date'] = df['date'].astype(str)
             
             self.logger.debug(f"Retrieved {len(df)} balance sheet records for {symbol}")
             return df
@@ -298,7 +298,7 @@ class FinMindClient:
                 return pd.DataFrame()
             
             if 'date' in df.columns:
-                df['date'] = pd.to_datetime(df['date'])
+                df['date'] = df['date'].astype(str)
             
             self.logger.debug(f"Retrieved {len(df)} cash flow records for {symbol}")
             return df
@@ -345,7 +345,7 @@ class FinMindClient:
                 return pd.DataFrame()
             
             if 'date' in df.columns:
-                df['date'] = pd.to_datetime(df['date'])
+                df['date'] = df['date'].astype(str)
             
             self.logger.debug(f"Retrieved {len(df)} monthly revenue records for {symbol}")
             return df
@@ -353,6 +353,94 @@ class FinMindClient:
         except Exception as e:
             self.logger.error(f"Failed to fetch monthly revenue for {symbol}: {e}")
             raise
+
+    @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
+    def get_daily_price(
+        self, 
+        symbol: str, 
+        start_date: str, 
+        end_date: str
+    ) -> pd.DataFrame:
+        """獲取每日股價數據 (OHLCV)"""
+        self.rate_limiter.wait_if_needed()
+        try:
+            df = self.data_loader.taiwan_stock_daily(
+                stock_id=symbol,
+                start_date=start_date,
+                end_date=end_date
+            )
+            if df is None or df.empty:
+                return pd.DataFrame()
+            if 'date' in df.columns:
+                df['date'] = df['date'].astype(str)
+            return df
+        except KeyError as e:
+            if str(e) == "'data'":
+                self.logger.warning(f"No price data available for {symbol}")
+                return pd.DataFrame()
+            raise
+        except Exception as e:
+            self.logger.error(f"Failed to fetch daily price for {symbol}: {e}")
+            raise
+
+    @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
+    def get_institutional_investors(
+        self, 
+        symbol: str, 
+        start_date: str, 
+        end_date: str
+    ) -> pd.DataFrame:
+        """獲取三大法人買賣超數據"""
+        self.rate_limiter.wait_if_needed()
+        try:
+            df = self.data_loader.taiwan_stock_institutional_investors(
+                stock_id=symbol,
+                start_date=start_date,
+                end_date=end_date
+            )
+            if df is None or df.empty:
+                return pd.DataFrame()
+            if 'date' in df.columns:
+                df['date'] = df['date'].astype(str)
+            return df
+        except KeyError as e:
+            if str(e) == "'data'":
+                self.logger.warning(f"No institutional data available for {symbol}")
+                return pd.DataFrame()
+            raise
+        except Exception as e:
+            self.logger.error(f"Failed to fetch institutional data for {symbol}: {e}")
+            raise
+
+    @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
+    def get_shareholding(
+        self, 
+        symbol: str, 
+        start_date: str, 
+        end_date: str
+    ) -> pd.DataFrame:
+        """獲取大戶持股數據 (每週)"""
+        self.rate_limiter.wait_if_needed()
+        try:
+            # 使用正確的每週細分持股數據集
+            df = self.data_loader.taiwan_stock_holding_shares_per(
+                stock_id=symbol,
+                start_date=start_date,
+                end_date=end_date
+            )
+            if df is None or df.empty:
+                return pd.DataFrame()
+            if 'date' in df.columns:
+                df['date'] = df['date'].astype(str)
+            return df
+        except KeyError as e:
+            if str(e) == "'data'":
+                self.logger.warning(f"No holding shares data available for {symbol}")
+                return pd.DataFrame()
+            return pd.DataFrame()
+        except Exception as e:
+            self.logger.error(f"Failed to fetch holding shares per for {symbol}: {e}")
+            return pd.DataFrame() # 非關鍵錯誤，返回空
 
     def get_comprehensive_fundamentals(
         self, 

@@ -9,7 +9,7 @@
     4. 輸出選股結果
     5. 發送通知
 
-參考：Requirement/Implementation.md 第 4.2 節
+參考：docs/Implementation.md 第 4.2 節
 """
 
 import logging

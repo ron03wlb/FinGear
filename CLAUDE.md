@@ -436,7 +436,7 @@ def mock_shioaji_client():
 **Step-by-Step Process** (MUST FOLLOW IN ORDER):
 
 **1. Planning Phase**:
-   - [ ] Read relevant documentation in `Requirement/Implementation.md`
+   - [ ] Read relevant documentation in `docs/Implementation.md`
    - [ ] Identify affected modules and dependencies
    - [ ] Check module import order (see Module Dependencies section)
    - [ ] Design function signatures with full type hints
@@ -690,8 +690,8 @@ Columns: date, revenue, gross_profit, operating_income, net_income,
 
 ## Reference Documentation
 
-- **System Overview**: `Requirement/Overview.md` - Overall architecture and build guide
-- **Implementation Details**: `Requirement/Implementation.md` - Complete architecture with 12 Mermaid diagrams
-- **Financial Indicators**: `Requirement/FunctionalIndicators.md` - 50+ indicator definitions
+- **System Overview**: `docs/Overview.md` - Overall architecture and build guide
+- **Implementation Details**: `docs/Implementation.md` - Complete architecture with 12 Mermaid diagrams
+- **Financial Indicators**: `docs/FunctionalIndicators.md` - 50+ indicator definitions
 
 When implementing new features, always reference the corresponding section in `Implementation.md` for pseudocode and architecture diagrams.

@@ -206,6 +206,14 @@ def merge_fundamental_data(comprehensive_data: dict) -> pd.DataFrame:
         logger.warning("All pivoted data is empty")
         return pd.DataFrame()
     
+    # Special handling for financial institutions (Banks, Insurance)
+    # If 'Revenue' is missing but 'NetInterestIncome' exists, use it to calculate revenue
+    if 'Revenue' not in merged.columns:
+        # Check for Bank fields
+        if 'NetInterestIncome' in merged.columns and 'NetNonInterestIncome' in merged.columns:
+            merged['Revenue'] = merged['NetInterestIncome'].fillna(0) + merged['NetNonInterestIncome'].fillna(0)
+        # Check for alternatives if any (Insurance etc could be added here)
+    
     # Map FinMind column names to our expected schema
     # Reference: https://finmind.github.io/tutor/TaiwanMarket/Financial/
     column_mapping = {

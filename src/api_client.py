@@ -7,7 +7,7 @@ Shioaji API 客戶端模組
 - 速率限制與錯誤重試機制
 - 歷史數據、法人買賣超等數據抓取
 
-參考：Requirement/Implementation.md 第 3.1 節
+參考：docs/Implementation.md 第 3.1 節
 """
 
 import threading
@@ -17,6 +17,7 @@ from typing import Optional, List
 import pandas as pd
 import shioaji as sj
 from datetime import datetime
+from src.utils.exceptions import APIConnectionError
 
 class RateLimiter:
     """
@@ -100,7 +101,7 @@ class ShioajiClient:
                 return True
             except Exception as e:
                 self.logger.error(f"Shioaji API 登入失敗: {e}")
-                raise ConnectionError(f"API 登入失敗: {e}")
+                raise APIConnectionError(f"API 登入失敗: {e}")
 
     def disconnect(self):
         with self.lock:

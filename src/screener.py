@@ -6,7 +6,7 @@
 - Layer 2: 籌碼面驗證（法人 + 大戶）
 - Layer 3: 技術面位階（乖離率 + KD/RSI）
 
-參考：Requirement/Implementation.md 第 3.3 節
+參考：docs/Implementation.md 第 3.3 節
 """
 
 import logging

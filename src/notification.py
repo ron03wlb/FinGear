@@ -6,7 +6,7 @@
 - Telegram Bot 推播
 - 重試機制與錯誤處理
 
-參考：Requirement/Implementation.md 第 4.3 節
+參考：docs/Implementation.md 第 4.3 節
 """
 
 import logging

@@ -9,7 +9,7 @@
     4. ETL 轉置
     5. 清理舊數據
 
-參考：Requirement/Implementation.md 第 4.1 節
+參考：docs/Implementation.md 第 4.1 節
 """
 
 import logging

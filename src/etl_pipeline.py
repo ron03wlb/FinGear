@@ -6,7 +6,7 @@ ETL 管道模組
 - 數據清洗與補充技術指標
 - 批次處理優化
 
-參考：Requirement/Implementation.md 第 3.4 節
+參考：docs/Implementation.md 第 3.4 節
 """
 
 import logging

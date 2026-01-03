@@ -6,7 +6,7 @@ Parquet 數據管理器模組
 - 數據讀寫與查詢優化
 - 分區轉置（ETL 轉換）
 
-參考：Requirement/Implementation.md 第 3.4.2 節
+參考：docs/Implementation.md 第 3.4.2 節
 """
 
 import logging
@@ -17,6 +17,7 @@ import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 from datetime import datetime
+from src.utils.exceptions import DataNotFoundError
 
 class ParquetManager:
     """
@@ -54,6 +55,10 @@ class ParquetManager:
         path = self.history_path / f"symbol={symbol}"
         path.mkdir(parents=True, exist_ok=True)
         
+        # Ensure 'date' column is string before writing
+        if 'date' in data.columns:
+            data['date'] = data['date'].astype(str)
+
         file_path = path / "data.parquet"
         data.to_parquet(file_path, engine='pyarrow', compression='snappy', index=False)
         self.logger.debug(f"成功寫入個股分區: {file_path}")
@@ -67,7 +72,11 @@ class ParquetManager:
             self.daily_path,
             filters=[('date', '>=', start_date), ('date', '<=', end_date)]
         )
-        return dataset.read().to_pandas()
+        df = dataset.read().to_pandas()
+        # Ensure 'date' column is string for consistency, though it should be if stored as such
+        if 'date' in df.columns:
+            df['date'] = df['date'].astype(str)
+        return df
 
     def read_symbol_partition(self, symbol: str) -> pd.DataFrame:
         """讀取個股分區數據"""
@@ -75,7 +84,11 @@ class ParquetManager:
         if not file_path.exists():
             self.logger.warning(f"找不到股個分區數據: {symbol}")
             return pd.DataFrame()
-        return pd.read_parquet(file_path)
+        df = pd.read_parquet(file_path)
+        # Ensure 'date' column is string for consistency, though it should be if stored as such
+        if 'date' in df.columns:
+            df['date'] = df['date'].astype(str)
+        return df
 
     def transpose_to_symbol_partition(self, date_str: str):
         """將時間分區轉置為個股分區 (ETL)"""
@@ -111,13 +124,18 @@ class ParquetManager:
             
         combined_df.to_parquet(file_path, engine='pyarrow', compression='snappy', index=False)
 
-    def write_fundamental_data(self, symbol: str, data: pd.DataFrame):
-        """寫入財務報表數據"""
+    def write_fundamental_data(self, df: pd.DataFrame, symbol: str):
+        """將基本面數據寫入個股分區"""
         path = self.fundamentals_path / f"symbol={symbol}"
         path.mkdir(parents=True, exist_ok=True)
+        
+        # 確保日期為字串
+        if 'date' in df.columns:
+            df['date'] = df['date'].astype(str)
+            
         file_path = path / "data.parquet"
-        data.to_parquet(file_path, engine='pyarrow', compression='snappy', index=False)
-        self.logger.info(f"成功寫入財務數據: {file_path}")
+        df.to_parquet(file_path, index=False)
+        self.logger.debug(f"成功寫入個股基本面數據: {file_path}")
 
     def read_fundamental_data(self, symbol: str) -> pd.DataFrame:
         """讀取財務報表數據"""
@@ -135,9 +153,14 @@ class ParquetManager:
         
         if file_path.exists():
             history_df = pd.read_parquet(file_path)
+            # Ensure consistent type for merging
+            history_df['date'] = history_df['date'].astype(str)
+            data['date'] = data['date'].astype(str)
+            
             combined_df = pd.concat([history_df, data]).drop_duplicates(subset=['date'], keep='last')
             combined_df = combined_df.sort_values('date')
         else:
+            data['date'] = data['date'].astype(str)
             combined_df = data.sort_values('date')
             
         combined_df.to_parquet(file_path, engine='pyarrow', compression='snappy', index=False)
