@@ -22,6 +22,8 @@ from src.utils.exceptions import DataNotFoundError
 class ParquetManager:
     """
     Parquet 數據管理器 - 管理時間分區與個股分區
+
+    設計模式：Repository Pattern (抽象數據訪問層)
     """
 
     def __init__(self, base_path: str = 'data'):
@@ -97,7 +99,7 @@ class ParquetManager:
         # 1. 讀取該日的每日數據
         daily_file = self.daily_path / f"date={date_str}" / "data.parquet"
         if not daily_file.exists():
-            self.logger.error(f"找不到每日數據檔案: {daily_file}")
+            self.logger.error(f"找不到每日數據檔案: {daily_file}", exc_info=True)
             return
             
         daily_df = pd.read_parquet(daily_file)

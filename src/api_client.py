@@ -58,7 +58,7 @@ class APIErrorHandler:
                             logging.warning(f"{func.__name__} 失敗 (第 {attempt + 1} 次): {e}")
                             time.sleep(delay * (attempt + 1))
                         else:
-                            logging.error(f"{func.__name__} 最終失敗: {e}")
+                            logging.error(f"{func.__name__} 最終失敗: {e}", exc_info=True)
                             raise
                 return None
             return wrapper
@@ -100,7 +100,7 @@ class ShioajiClient:
                 self.logger.info(f"Shioaji API {'模擬' if self.simulation else '正式'}環境連線成功")
                 return True
             except Exception as e:
-                self.logger.error(f"Shioaji API 登入失敗: {e}")
+                self.logger.error(f"Shioaji API 登入失敗: {e}", exc_info=True)
                 raise APIConnectionError(f"API 登入失敗: {e}")
 
     def disconnect(self):
@@ -134,7 +134,7 @@ class ShioajiClient:
             df['symbol'] = symbol
             return df
         except Exception as e:
-            self.logger.error(f"抓取 {symbol} 歷史數據失敗: {e}")
+            self.logger.error(f"抓取 {symbol} 歷史數據失敗: {e}", exc_info=True)
             raise
 
     @APIErrorHandler.retry_on_failure(max_retries=3)
@@ -155,7 +155,7 @@ class ShioajiClient:
             self.logger.warning("get_institutional_trades 尚未完全實作（需確認數據源權限）")
             return pd.DataFrame()
         except Exception as e:
-            self.logger.error(f"抓取 {date_str} 法人數據失敗: {e}")
+            self.logger.error(f"抓取 {date_str} 法人數據失敗: {e}", exc_info=True)
             raise
 
     def __enter__(self):

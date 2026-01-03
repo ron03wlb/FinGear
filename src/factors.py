@@ -62,13 +62,13 @@ class FactorEngine:
     def _load_weights(self) -> Dict[str, float]:
         """從 parameters.yaml 載入權重設定"""
         default_weights = {
-            'roe': 0.20,
-            'eps_yoy': 0.20,
-            'fcf': 0.15,
-            'gross_margin_trend': 0.15,
-            'revenue_yoy': 0.10,
-            'debt_ratio': 0.10,
-            'pe_relative': 0.10
+            'roe': 0.15,              # ROE 股東權益報酬率 15%
+            'eps_yoy': 0.15,          # EPS 年增率 15%
+            'fcf': 0.10,              # 自由現金流 10%
+            'gross_margin_trend': 0.10,  # 毛利率趨勢 10%
+            'revenue_yoy': 0.10,      # 營收年增率 10%
+            'debt_ratio': 0.10,       # 負債比率 10%
+            'pe_relative': 0.30       # PE 相對估值 30% (強調估值因子)
         }
         
         config_path = Path(__file__).parent.parent / 'config' / 'parameters.yaml'
@@ -84,7 +84,7 @@ class FactorEngine:
                     return default_weights
                 return weights
         except Exception as e:
-            self.logger.error(f"讀取權重設定失敗: {e}，使用預設值")
+            self.logger.error(f"讀取權重設定失敗: {e}，使用預設值", exc_info=True)
             return default_weights
 
     def calculate_fundamental_score(self, symbol: str) -> float:

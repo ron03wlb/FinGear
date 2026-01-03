@@ -97,7 +97,7 @@ class StockScreener:
                     'pe_score': pe_score
                 })
             except Exception as e:
-                self.logger.error(f"Error scoring {symbol}: {e}")
+                self.logger.error(f"Error scoring {symbol}: {e}", exc_info=True)
         
         df = pd.DataFrame(results)
         if df.empty: return df
@@ -402,7 +402,7 @@ class StockScreener:
                 results.append(row)
                 
             except Exception as e:
-                self.logger.error(f"Error in L3 for {symbol}: {e}")
+                self.logger.error(f"Error in L3 for {symbol}: {e}", exc_info=True)
             
         return pd.DataFrame(results)
 

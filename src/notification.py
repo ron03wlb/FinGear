@@ -18,7 +18,7 @@ class NotificationService:
     """
     通知服務
 
-    設計模式：Observer Pattern
+    設計模式：Facade Pattern (為多種通知管道提供統一接口)
     支援多種通知管道：Line Notify, Telegram Bot
 
     Attributes:
@@ -67,7 +67,7 @@ class NotificationService:
                     self.logger.info("Line Notify 發送成功")
                     return True
                 else:
-                    self.logger.error(f"Line Notify 失敗: {response.text}")
+                    self.logger.error(f"Line Notify 失敗: {response.text}", exc_info=True)
             except Exception as e:
                 self.logger.warning(f"Line Notify 嘗試 {attempt+1} 失敗: {e}")
                 time.sleep(2)
@@ -101,10 +101,10 @@ class NotificationService:
                 self.logger.info("Telegram 訊息發送成功")
                 return True
             else:
-                self.logger.error(f"Telegram 失敗: {response.text}")
+                self.logger.error(f"Telegram 失敗: {response.text}", exc_info=True)
                 return False
         except Exception as e:
-            self.logger.error(f"Telegram 發送異常: {e}")
+            self.logger.error(f"Telegram 發送異常: {e}", exc_info=True)
             return False
 
 

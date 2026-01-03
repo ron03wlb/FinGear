@@ -87,7 +87,7 @@ class APIErrorHandler:
                             )
                             time.sleep(wait_time)
                         else:
-                            logging.error(f"{func.__name__} failed after {max_retries} attempts: {e}")
+                            logging.error(f"{func.__name__} failed after {max_retries} attempts: {e}", exc_info=True)
                             raise
                 return None
             return wrapper
@@ -156,7 +156,7 @@ class FinMindClient:
             return df
             
         except Exception as e:
-            self.logger.error(f"Failed to fetch stock list: {e}")
+            self.logger.error(f"Failed to fetch stock list: {e}", exc_info=True)
             raise
 
     @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
@@ -208,7 +208,7 @@ class FinMindClient:
             return df
             
         except Exception as e:
-            self.logger.error(f"Failed to fetch financial statements for {symbol}: {e}")
+            self.logger.error(f"Failed to fetch financial statements for {symbol}: {e}", exc_info=True)
             raise
 
     @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
@@ -256,7 +256,7 @@ class FinMindClient:
             return df
             
         except Exception as e:
-            self.logger.error(f"Failed to fetch balance sheet for {symbol}: {e}")
+            self.logger.error(f"Failed to fetch balance sheet for {symbol}: {e}", exc_info=True)
             raise
 
     @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
@@ -304,7 +304,7 @@ class FinMindClient:
             return df
             
         except Exception as e:
-            self.logger.error(f"Failed to fetch cash flow for {symbol}: {e}")
+            self.logger.error(f"Failed to fetch cash flow for {symbol}: {e}", exc_info=True)
             raise
 
     @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
@@ -351,7 +351,7 @@ class FinMindClient:
             return df
             
         except Exception as e:
-            self.logger.error(f"Failed to fetch monthly revenue for {symbol}: {e}")
+            self.logger.error(f"Failed to fetch monthly revenue for {symbol}: {e}", exc_info=True)
             raise
 
     @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
@@ -380,7 +380,7 @@ class FinMindClient:
                 return pd.DataFrame()
             raise
         except Exception as e:
-            self.logger.error(f"Failed to fetch daily price for {symbol}: {e}")
+            self.logger.error(f"Failed to fetch daily price for {symbol}: {e}", exc_info=True)
             raise
 
     @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
@@ -409,7 +409,7 @@ class FinMindClient:
                 return pd.DataFrame()
             raise
         except Exception as e:
-            self.logger.error(f"Failed to fetch institutional data for {symbol}: {e}")
+            self.logger.error(f"Failed to fetch institutional data for {symbol}: {e}", exc_info=True)
             raise
 
     @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
@@ -439,7 +439,7 @@ class FinMindClient:
                 return pd.DataFrame()
             return pd.DataFrame()
         except Exception as e:
-            self.logger.error(f"Failed to fetch holding shares per for {symbol}: {e}")
+            self.logger.error(f"Failed to fetch holding shares per for {symbol}: {e}", exc_info=True)
             return pd.DataFrame() # 非關鍵錯誤，返回空
 
     def get_comprehensive_fundamentals(

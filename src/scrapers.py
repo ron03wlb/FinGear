@@ -54,7 +54,7 @@ class ChipDataScraper:
             df['symbol'] = df['symbol'].str.strip()
             return df
         except Exception as e:
-            self.logger.error(f"TWSE 抓取異常: {e}")
+            self.logger.error(f"TWSE 抓取異常: {e}", exc_info=True)
             return pd.DataFrame()
 
     def _scrape_tpex(self, date_str: str) -> pd.DataFrame:
@@ -80,7 +80,7 @@ class ChipDataScraper:
             df['symbol'] = df['symbol'].str.strip()
             return df
         except Exception as e:
-            self.logger.error(f"TPEx 抓取異常: {e}")
+            self.logger.error(f"TPEx 抓取異常: {e}", exc_info=True)
             return pd.DataFrame()
 
     def scrape_tdcc_shareholding(self) -> pd.DataFrame:
@@ -117,7 +117,7 @@ class ChipDataScraper:
             major_df.columns = ['date', 'symbol', 'major_ratio']
             return major_df
         except Exception as e:
-            self.logger.error(f"TDCC 抓取異常: {e}")
+            self.logger.error(f"TDCC 抓取異常: {e}", exc_info=True)
             return pd.DataFrame()
 
 
