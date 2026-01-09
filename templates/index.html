@@ -44,17 +44,20 @@
             <table id="stockTable">
                 <thead>
                     <tr>
-                        <th onclick="sortTable('symbol')">股票代碼 ▲</th>
+                        <th class="sticky-col" onclick="sortTable('symbol')">股票代碼 ▲</th>
                         <th onclick="sortTable('fundamental_score')">基本面 ▲</th>
+                        <th onclick="sortTable('roe')">ROE ▲</th>
+                        <th onclick="sortTable('pe_relative')">PE相對 ▲</th>
+                        <th onclick="sortTable('gross_margin_trend')">毛利率 ▲</th>
                         <th onclick="sortTable('chip_score')">籌碼面 ▲</th>
                         <th onclick="sortTable('tech_score')">技術面 ▲</th>
-                        <th onclick="sortTable('signal')">訊號 ▲</th>
+                        <th onclick="sortTable('signal')">技術建議 ▲</th>
                         <th>操作</th>
                     </tr>
                 </thead>
                 <tbody id="stockTableBody">
                     <tr>
-                        <td colspan="6" class="loading">載入中...</td>
+                        <td colspan="9" class="loading">載入中...</td>
                     </tr>
                 </tbody>
             </table>

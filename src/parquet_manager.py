@@ -87,7 +87,17 @@ class ParquetManager:
             self.logger.warning(f"找不到股個分區數據: {symbol}")
             return pd.DataFrame()
         df = pd.read_parquet(file_path)
-        # Ensure 'date' column is string for consistency, though it should be if stored as such
+        
+        # 標準化欄位名稱 (處理 FinMind 不同資料源的差異)
+        column_mapping = {
+            'max': 'high',
+            'min': 'low',
+            'Trading_Volume': 'volume',
+            'Trading_money': 'amount'
+        }
+        df.rename(columns=column_mapping, inplace=True)
+        
+        # Ensure 'date' column is string for consistency
         if 'date' in df.columns:
             df['date'] = df['date'].astype(str)
         return df

@@ -12,6 +12,7 @@
 import logging
 from typing import List
 import pandas as pd
+from src.utils.stock_names import get_stock_name
 
 
 class StockScreener:
@@ -76,32 +77,32 @@ class StockScreener:
         results = []
         for symbol in universe:
             try:
-                # 取得詳細因子評分庫 (需確保 factor_engine 能回傳細項，目前透過 cache 機制間接處理)
-                # 這裡調用計算並取得分數
-                score = self.factor_engine.calculate_fundamental_score(symbol)
-                
+                # 獲取詳細因子評分
+                details = self.factor_engine.calculate_fundamental_details(symbol)
+                score = details['total_score']
+                factors = details['factors']
+
                 # 檢查 PE 位階 (Stock Level)
-                # 由於 calculate_fundamental_score 內部已經計算了 pe_relative 並評分
-                # 我們需要從緩存或重新計算 pe 分數來決定是否過濾
-                pe_val = self.factor_engine.fundamental_factors['pe_relative'](symbol)
-                pe_score = self.factor_engine._score_factor('pe_relative', pe_val)
-                
+                pe_score = factors.get('pe_relative', {}).get('score', 1)
+
                 # 位階過濾：只保留「便宜 (5分)」或「合理 (4分)」
                 if pe_score < 4:
                     self.logger.debug(f"{symbol} 位階過於昂貴 (PE Score: {pe_score}), 予以過濾")
                     continue
-                    
+
                 results.append({
-                    'symbol': symbol, 
+                    'symbol': symbol,
+                    'stock_name': get_stock_name(symbol),
                     'fundamental_score': score,
-                    'pe_score': pe_score
+                    'pe_score': pe_score,
+                    'fundamental_details': factors  # 儲存詳細因子分數
                 })
             except Exception as e:
                 self.logger.error(f"Error scoring {symbol}: {e}", exc_info=True)
-        
+
         df = pd.DataFrame(results)
         if df.empty: return df
-        
+
         # 排序並取前 30
         return df.sort_values('fundamental_score', ascending=False).head(30)
 
@@ -126,18 +127,20 @@ class StockScreener:
             # 1. 籌碼數據載入
             chip_df = self.data_manager.read_chip_data(symbol)
             if chip_df.empty or len(chip_df) < 5:
-                self.logger.warning(f"{symbol} 籌碼數據不足，跳過")
-                continue
-            
-            recent_5d = chip_df.tail(5)
+                self.logger.warning(f"{symbol} 籌碼數據不足，設為 0 分")
+                chip_score = 0
+                recent_5d = pd.DataFrame()
+            else:
+                recent_5d = chip_df.tail(5)
             
             # === 因子 1: 投信連續買超天數 (0-30 分) ===
             trust_consecutive = 0
-            for i in range(len(recent_5d) - 1, -1, -1):
-                if recent_5d.iloc[i]['trust_net'] > 0:
-                    trust_consecutive += 1
-                else:
-                    break
+            if not recent_5d.empty:
+                for i in range(len(recent_5d) - 1, -1, -1):
+                    if recent_5d.iloc[i]['trust_net'] > 0:
+                        trust_consecutive += 1
+                    else:
+                        break
             
             if trust_consecutive >= 5:
                 chip_score += 30
@@ -152,45 +155,54 @@ class StockScreener:
                 chip_details['trust_days'] = "未買超"
             
             # === 因子 2: 外資持倉態度 (0-25 分) ===
-            foreign_5d_avg = recent_5d['foreign_net'].mean()
-            foreign_latest = recent_5d.iloc[-1]['foreign_net']
-            
-            if foreign_5d_avg > 1000 and foreign_latest > 0:
-                chip_score += 25  # 持續買超且最近仍買
-                chip_details['foreign_status'] = "積極買超"
-            elif foreign_5d_avg > 0:
-                chip_score += 15  # 平均買超
-                chip_details['foreign_status'] = "溫和買超"
-            elif foreign_5d_avg > -1000:
-                chip_score += 5   # 小幅賣壓（可容忍）
-                chip_details['foreign_status'] = "小賣"
+            if not recent_5d.empty:
+                foreign_5d_avg = recent_5d['foreign_net'].mean()
+                foreign_latest = recent_5d.iloc[-1]['foreign_net']
+                
+                if foreign_5d_avg > 1000 and foreign_latest > 0:
+                    chip_score += 25  # 持續買超且最近仍買
+                    chip_details['foreign_status'] = "積極買超"
+                elif foreign_5d_avg > 0:
+                    chip_score += 15  # 平均買超
+                    chip_details['foreign_status'] = "溫和買超"
+                elif foreign_5d_avg > -1000:
+                    chip_score += 5   # 小幅賣壓（可容忍）
+                    chip_details['foreign_status'] = "小賣"
+                else:
+                    chip_details['foreign_status'] = "大賣"
             else:
-                chip_details['foreign_status'] = "大賣"
+                chip_details['foreign_status'] = "無數據"
             
             # === 因子 3: 自營商動向 (0-15 分) ===
-            dealer_5d_total = recent_5d['dealer_net'].sum()
-            if dealer_5d_total > 0:
-                chip_score += 15
-                chip_details['dealer_status'] = "買超"
-            elif dealer_5d_total > -500:
-                chip_score += 8
-                chip_details['dealer_status'] = "中立"
+            if not recent_5d.empty:
+                dealer_5d_total = recent_5d['dealer_net'].sum()
+                if dealer_5d_total > 0:
+                    chip_score += 15
+                    chip_details['dealer_status'] = "買超"
+                elif dealer_5d_total > -500:
+                    chip_score += 8
+                    chip_details['dealer_status'] = "中立"
+                else:
+                    chip_details['dealer_status'] = "賣超"
             else:
-                chip_details['dealer_status'] = "賣超"
+                chip_details['dealer_status'] = "無數據"
             
             # === 因子 4: 三大法人合計強度 (0-20 分) ===
-            total_5d_sum = recent_5d['total_net'].sum()
-            if total_5d_sum > 5000:
-                chip_score += 20
-                chip_details['total_strength'] = "強勁"
-            elif total_5d_sum > 1000:
-                chip_score += 15
-                chip_details['total_strength'] = "穩健"
-            elif total_5d_sum > 0:
-                chip_score += 10
-                chip_details['total_strength'] = "微弱"
+            if not recent_5d.empty:
+                total_5d_sum = recent_5d['total_net'].sum()
+                if total_5d_sum > 5000:
+                    chip_score += 20
+                    chip_details['total_strength'] = "強勁"
+                elif total_5d_sum > 1000:
+                    chip_score += 15
+                    chip_details['total_strength'] = "穩健"
+                elif total_5d_sum > 0:
+                    chip_score += 10
+                    chip_details['total_strength'] = "微弱"
+                else:
+                    chip_details['total_strength'] = "負值"
             else:
-                chip_details['total_strength'] = "負值"
+                chip_details['total_strength'] = "無數據"
             
             # === 因子 5: 大戶持股趨勢 (0-10 分) ===
             share_df = self.data_manager.read_shareholding_data(symbol)
@@ -210,21 +222,22 @@ class StockScreener:
             else:
                 chip_details['share_trend'] = "無數據"
             
-            # === 判定通過門檻 ===
-            if chip_score >= 60:
-                row['chip_score'] = chip_score
-                row['chip_status'] = f"PASS({chip_score}分)"
-                row['chip_details'] = str(chip_details)
-                passed.append(row)
-                self.logger.info(f"{symbol} 通過籌碼面 {chip_score}/100 - {chip_details}")
-            else:
-                self.logger.info(f"{symbol} 未通過籌碼面 {chip_score}/100 (需>=60) - {chip_details}")
-            
+            # === 不再過濾，所有股票都保留（籌碼面僅供參考）===
+            row['chip_score'] = chip_score
+            row['chip_details'] = str(chip_details)
+            # 確保 fundamental_details 也被轉換為字符串
+            if 'fundamental_details' in row:
+                row['fundamental_details'] = str(row['fundamental_details'])
+            passed.append(row)
+
+            # 記錄籌碼面評分（僅供參考）
+            self.logger.info(f"{symbol} 籌碼面評分 {chip_score}/100 - {chip_details}")
+
         return pd.DataFrame(passed)
 
     def _layer3_technical_position(self, candidates: pd.DataFrame) -> pd.DataFrame:
         """
-        Layer 3: 技術面指標多維度評估
+        Layer 3: 技術面指標多維度評估（不過濾，僅提供技術建議）
         評分項目：
             1. 均線趨勢（多頭排列）（25%）
             2. MACD 動能確認（20%）
@@ -232,10 +245,14 @@ class StockScreener:
             4. KD 指標狀態（15%）
             5. 量能放大驗證（15%）
             6. 布林通道位置（10%）
-        總分 >= 65 分 → STRONG_BUY
-        總分 50-64 分 → BUY
-        總分 35-49 分 → WATCH
-        總分 < 35 分 → HOLD/REDUCE
+
+        技術建議（僅供參考）：
+        總分 >= 65 分 → STRONG_BUY（強力買進）
+        總分 50-64 分 → BUY（買進）
+        總分 35-49 分 → WATCH（觀察）
+        總分 < 35 分 → HOLD/REDUCE（持有/減碼）
+
+        注意：所有通過籌碼面的股票都會保留，不會被技術面過濾
         """
         results = []
         import pandas_ta as ta
@@ -398,7 +415,8 @@ class StockScreener:
                     else:
                         row['signal'] = 'HOLD'
 
-                self.logger.info(f"{symbol} 技術面 {tech_score}/100 → {row['signal']} - {tech_details}")
+                # 記錄技術面評分（僅供參考，不影響是否入選）
+                self.logger.info(f"{symbol} 技術建議 {tech_score}/100 → {row['signal']} - {tech_details}")
                 results.append(row)
                 
             except Exception as e:

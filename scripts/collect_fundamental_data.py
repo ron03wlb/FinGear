@@ -73,23 +73,40 @@ def calculate_date_range() -> tuple[str, str]:
     return start_date.strftime('%Y-%m-%d'), end_date.strftime('%Y-%m-%d')
 
 
-def get_stock_universe(finmind_client: FinMindClient, market: str = "all") -> List[str]:
+def get_stock_universe(finmind_client: FinMindClient, market: str = "all", use_top_stocks: bool = True) -> List[str]:
     """
-    獲取台股股票清單
+    獲取目標股票清單
     
     Args:
         finmind_client: FinMind API client
-        market: Market filter ('TSE', 'OTC', or 'all')
+        market: TSE, OTC, or all
+        use_top_stocks: 是否從 config/top_stocks.txt 載入
         
     Returns:
         List of stock symbols
-        
-    Raises:
-        Exception: Failed to fetch stock list
     """
     logger = logging.getLogger(__name__)
-    logger.info(f"Fetching stock list for market: {market}")
     
+    if use_top_stocks:
+        config_path = Path('config/top_stocks.txt')
+        if config_path.exists():
+            logger.info(f"Loading stock universe from {config_path}")
+            symbols = []
+            with open(config_path, 'r', encoding='utf-8') as f:
+                for line in f:
+                    line = line.strip()
+                    if line:
+                        # Extract 4-digit code
+                        parts = line.split()
+                        if parts and parts[0].isdigit() and len(parts[0]) == 4:
+                            symbols.append(parts[0])
+            if symbols:
+                return symbols
+            logger.warning("top_stocks.txt is empty, falling back to API")
+        else:
+            logger.warning("config/top_stocks.txt not found, falling back to API")
+
+    logger.info(f"Fetching stock list from API for market: {market}")
     try:
         all_stocks = finmind_client.get_stock_list(market=market)
         
@@ -218,33 +235,101 @@ def merge_fundamental_data(comprehensive_data: dict) -> pd.DataFrame:
     # Reference: https://finmind.github.io/tutor/TaiwanMarket/Financial/
     column_mapping = {
         # Income Statement (損益表)
-        'Revenue': 'revenue',                          # 營業收入
-        'GrossProfit': 'gross_profit',                 # 毛利
-        'NetIncome': 'net_income',                     # 本期淨利（稅後）
-        'OperatingIncome': 'operating_income',         # 營業利益
-        'OperatingExpenses': 'operating_expense',      # 營業費用
-        'EPS': 'eps',                                   # 每股盈餘
+        'Revenue': 'revenue',                                        # 營業收入
+        # Banks/Insurance Revenue
+        'NetInterestIncome': 'net_interest_income',
+        'NetNonInterestIncome': 'net_non_interest_income',
+        
+        'GrossProfit': 'gross_profit',                               # 毛利
+        
+        'TotalConsolidatedProfitForThePeriod': 'net_income',         # 本期淨利（合併後）
+        'IncomeAfterTaxes': 'net_income_alt',                        # 稅後淨利（備用）
+        'IncomeAfterTax': 'net_income_alt1_5',                       # 稅後淨利（備用1.5 - 金融業）
+        'IncomeFromContinuingOperations': 'net_income_alt1_6',       # 繼續營業單位損益
+        'NetIncome': 'net_income_alt2',                              # 淨利（備用2）
+        'ProfitLoss': 'net_income_alt3',                             # 損益
+        'NetIncomeAttributableToOwnersOfParent': 'net_income_alt4',  # 歸屬於母公司業主之淨利
+        'ContinuousOperationNetIncomeBeforeTax': 'net_income_pretax', # 繼續營業單位稅前淨利
+        
+        'OperatingIncome': 'operating_income',                       # 營業利益
+        'NetOperatingIncome': 'operating_income_alt',                # 營業淨利
+        'OperatingExpenses': 'operating_expense',                    # 營業費用
+        'EPS': 'eps',                                                 # 每股盈餘
         
         # Balance Sheet (資產負債表)
-        'TotalAssets': 'total_assets',                  # 總資產
-        'TotalLiabilities': 'total_liabilities',        # 總負債
-        'Equity': 'equity',                             # 股東權益
+        'TotalAssets': 'total_assets',                                # 總資產
+        'TotalLiabilities': 'total_liabilities',                      # 總負債
+        'Equity': 'equity',                                           # 股東權益
+        'TotalEquity': 'equity_alt_total',                            # 權益總額
+        'EquityAttributableToOwnersOfParent': 'equity_alt',           # 母公司股東權益（備用）
         
         # Cash Flow (現金流量表)
-        'CashProvidedByOperatingActivities': 'operating_cash_flow',     # 營業現金流
+        'NetCashInflowFromOperatingActivities': 'operating_cash_flow',  # 營業現金流
+        'CashFlowsFromOperatingActivities': 'operating_cash_flow_alt',  # 營業現金流（備用）
         'CashProvidedByInvestingActivities': 'investing_cash_flow',     # 投資現金流
-        'CashProvidedByFinancingActivities': 'financing_cash_flow',     # 融資現金流
-        'CashAndCashEquivalentsAtEndOfPeriod': 'cash_equivalents',     # 期末現金
+        'CashFlowsProvidedFromInvestingActivities': 'investing_cash_flow_alt',
+        'NetCashFlowFromInvestingActivities': 'investing_cash_flow_alt2',
+        'CashFlowsProvidedFromFinancingActivities': 'financing_cash_flow',  # 融資現金流
+        'CashAndCashEquivalents': 'cash_equivalents',                   # 現金及約當現金
     }
     
     # Rename columns
     merged.rename(columns=column_mapping, inplace=True)
     
+    # Handle alternative column names (use primary if exists, otherwise use alt)
+    if 'net_income' not in merged.columns:
+        for alt in ['net_income_alt', 'net_income_alt1_5', 'net_income_alt1_6', 'net_income_alt2', 'net_income_alt3', 'net_income_alt4', 'net_income_pretax']:
+            if alt in merged.columns:
+                merged['net_income'] = merged[alt]
+                break
+    
+    if 'operating_income' not in merged.columns:
+        if 'operating_income_alt' in merged.columns:
+            merged['operating_income'] = merged['operating_income_alt']
+        elif 'operating_expense' in merged.columns and 'revenue' in merged.columns:
+             # Basic fallback: Revenue - Expense
+             merged['operating_income'] = merged['revenue'] - merged['operating_expense']
+
+    if 'equity' not in merged.columns:
+        for alt in ['equity_alt', 'equity_alt_total', 'total_assets']: # total_assets as very last resort for logic below
+            if alt in merged.columns:
+                merged['equity'] = merged[alt]
+                break
+    
+    if 'operating_cash_flow' not in merged.columns:
+        if 'operating_cash_flow_alt' in merged.columns:
+            merged['operating_cash_flow'] = merged['operating_cash_flow_alt']
+            
+    if 'investing_cash_flow' not in merged.columns:
+        for alt in ['investing_cash_flow_alt', 'investing_cash_flow_alt2']:
+            if alt in merged.columns:
+                merged['investing_cash_flow'] = merged[alt]
+                break
+    
+    # Special handling for financial institutions (Banks, Insurance)
+    if 'revenue' not in merged.columns:
+        if 'net_interest_income' in merged.columns and 'net_non_interest_income' in merged.columns:
+            merged['revenue'] = merged['net_interest_income'].fillna(0) + merged['net_non_interest_income'].fillna(0)
+    
     # Calculate derived fields if not present
-    # Capital expenditure (資本支出) = negative of investing cash flow (approximation)
+    # 1. Total liabilities = Total assets - Equity
+    if 'total_assets' in merged.columns and 'equity' in merged.columns:
+        if 'total_liabilities' not in merged.columns:
+            merged['total_liabilities'] = merged['total_assets'] - merged['equity']
+        elif merged['total_liabilities'].isnull().any():
+            merged['total_liabilities'] = merged['total_liabilities'].fillna(merged['total_assets'] - merged['equity'])
+    
+    # 2. Capital expenditure = negative of investing cash flow (approximation)
     if 'capital_expenditure' not in merged.columns and 'investing_cash_flow' in merged.columns:
         merged['capital_expenditure'] = -merged['investing_cash_flow']  # Usually negative
     
+    # 3. Gross Profit fallback for financials (banks usually don't have Gross Profit)
+    if 'revenue' in merged.columns:
+        if 'gross_profit' not in merged.columns:
+            merged['gross_profit'] = merged['revenue'] # For banks, revenue is often net spread, roughly gross profit
+        elif merged['gross_profit'].isnull().any():
+            merged['gross_profit'] = merged['gross_profit'].fillna(merged['revenue'])
+
     # Keep only essential columns for factor calculation
     essential_cols = [
         'date',
@@ -346,7 +431,7 @@ def collect_fundamental_data(
                     continue
                 
                 # Save to Parquet
-                data_manager.write_fundamental_data(symbol, merged_data)
+                data_manager.write_fundamental_data(merged_data, symbol)
                 success_count += 1
                 
             except Exception as e:
@@ -423,8 +508,8 @@ def main():
             symbols = args.symbols
             logger.info(f"Using user-specified symbols: {symbols}")
         else:
-            # Fetch from FinMind
-            symbols = get_stock_universe(finmind_client, market=args.market)
+            # Fetch from config/top_stocks.txt or FinMind
+            symbols = get_stock_universe(finmind_client, market=args.market, use_top_stocks=True)
             
             # Apply limit if specified
             if args.limit:

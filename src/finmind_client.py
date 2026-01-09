@@ -78,9 +78,17 @@ class APIErrorHandler:
                 for attempt in range(max_retries):
                     try:
                         return func(*args, **kwargs)
-                    except Exception as e:
+                    except (KeyError, Exception) as e:
+                        # KeyError: 'data' is often a hidden 402/rate limit error from FinMind library
+                        is_rate_limit = False
+                        if isinstance(e, KeyError) and str(e) == "'data'":
+                            is_rate_limit = True
+                            logging.warning(f"Detected potential rate limit (KeyError: 'data') in {func.__name__}")
+                        
                         if attempt < max_retries - 1:
-                            wait_time = delay * (2 ** attempt)  # Exponential backoff
+                            # If it's a rate limit, wait significantly longer
+                            base_delay = 10.0 if is_rate_limit else delay
+                            wait_time = base_delay * (2 ** attempt)
                             logging.warning(
                                 f"{func.__name__} failed (attempt {attempt + 1}/{max_retries}): {e}. "
                                 f"Retrying in {wait_time}s..."
@@ -410,6 +418,35 @@ class FinMindClient:
             raise
         except Exception as e:
             self.logger.error(f"Failed to fetch institutional data for {symbol}: {e}", exc_info=True)
+            raise
+
+    @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)
+    def get_market_value(
+        self, 
+        symbol_list: List[str], 
+        start_date: str, 
+        end_date: str
+    ) -> pd.DataFrame:
+        """獲取市值數據"""
+        self.rate_limiter.wait_if_needed()
+        try:
+            df = self.data_loader.taiwan_stock_market_value(
+                stock_id_list=symbol_list,
+                start_date=start_date,
+                end_date=end_date
+            )
+            if df is None or df.empty:
+                return pd.DataFrame()
+            if 'date' in df.columns:
+                df['date'] = df['date'].astype(str)
+            return df
+        except KeyError as e:
+            if str(e) == "'data'":
+                self.logger.warning(f"No market value data available for batch starting with {symbol_list[0]}")
+                return pd.DataFrame()
+            raise
+        except Exception as e:
+            self.logger.error(f"Failed to fetch market value for batch: {e}", exc_info=True)
             raise
 
     @APIErrorHandler.retry_on_failure(max_retries=3, delay=2.0)

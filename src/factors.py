@@ -96,28 +96,86 @@ class FactorEngine:
         if cache_key in self.cache:
             return self.cache[cache_key]
 
-        # 2. 計算各因子分數
+        # 2. 計算各因子分數和原始值
         scores = {}
+        raw_values = {}
         for factor_name, calc_func in self.fundamental_factors.items():
             try:
                 raw_value = calc_func(symbol)
                 scores[factor_name] = self._score_factor(factor_name, raw_value)
+                raw_values[factor_name] = raw_value  # 保存原始值
             except Exception as e:
                 self.logger.warning(f"計算因子 {factor_name} 失敗 ({symbol}): {e}")
-                scores[factor_name] = 1 # 預設最低分
+                scores[factor_name] = 1  # 預設最低分
+                raw_values[factor_name] = None
 
         # 3. 加權聚合
         # 從設定檔讀取權重，若無則降級處理
         weights = self.weights
-        
+
         weighted_score = sum(scores[f] * weights.get(f, 0) for f in scores if f in weights)
         # 1.0 (全最低) -> 40分, 5.0 (全最高) -> 200分
         final_score = weighted_score * 40
 
-        # 4. 寫入緩存
+        # 4. 寫入緩存（同時緩存詳細分數和原始值）
         self.cache[cache_key] = final_score
+        self.cache[f"{cache_key}_details"] = scores
+        self.cache[f"{cache_key}_raw_values"] = raw_values
 
         return final_score
+
+    def calculate_fundamental_details(self, symbol: str) -> Dict[str, any]:
+        """
+        計算基本面詳細分數，包含各因子分數、權重與原始值
+
+        Returns:
+            dict: {
+                'total_score': float,  # 綜合得分 (0-200)
+                'factors': {           # 各因子分數
+                    'roe': {
+                        'score': int,       # 1-5分
+                        'weight': float,    # 權重
+                        'weighted': float,  # 加權分數
+                        'raw_value': float  # 原始值
+                    },
+                    'eps_yoy': {...},
+                    ...
+                }
+            }
+        """
+        # 1. 檢查緩存
+        cache_key = f"{symbol}_fundamental_{date.today()}"
+        details_cache_key = f"{cache_key}_details"
+        raw_values_cache_key = f"{cache_key}_raw_values"
+
+        # 確保分數已計算
+        total_score = self.calculate_fundamental_score(symbol)
+
+        # 2. 從緩存獲取詳細分數和原始值
+        if details_cache_key not in self.cache:
+            # 如果緩存中沒有詳細分數，重新計算
+            self.cache.pop(cache_key, None)  # 清除總分緩存
+            total_score = self.calculate_fundamental_score(symbol)
+
+        scores = self.cache.get(details_cache_key, {})
+        raw_values = self.cache.get(raw_values_cache_key, {})
+
+        # 3. 組裝詳細結果
+        factors = {}
+        for factor_name, score in scores.items():
+            weight = self.weights.get(factor_name, 0)
+            weighted = score * weight
+            factors[factor_name] = {
+                'score': score,                              # 1-5分
+                'weight': weight,                            # 權重
+                'weighted': weighted,                        # 加權分數
+                'raw_value': raw_values.get(factor_name)    # 原始值
+            }
+
+        return {
+            'total_score': total_score,
+            'factors': factors
+        }
 
     def _get_fundamental_data(self, symbol: str) -> pd.DataFrame:
         """

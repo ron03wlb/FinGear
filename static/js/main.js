@@ -1,7 +1,7 @@
 // FinGear 選股儀表板 - 前端邏輯
 
 let currentData = [];
-let sortColumn = 'tech_score';
+let sortColumn = 'fundamental_score';  // 預設按基本面總分排序
 let sortAscending = false;
 let stockNames = {}; // 股票名稱對照表
 
@@ -63,6 +63,75 @@ function getScoreColor(score) {
     }
 }
 
+// 根據數值類型返回顏色
+function getValueColor(value, type) {
+    if (!value && value !== 0) return '#636e72';
+
+    switch (type) {
+        case 'roe': // ROE: 高=綠 (這裡數值是百分比，如 19.3)
+            if (value > 15) return '#10b981';
+            if (value > 8) return '#3b82f6';
+            return '#ef4444';
+        case 'growth': // 成長率: 正=綠, 負=紅
+            return value > 0 ? '#10b981' : '#ef4444';
+        case 'pe': // PE相對: 低=綠（便宜）
+            if (value < 0.9) return '#10b981';
+            if (value < 1.1) return '#3b82f6';
+            return '#ef4444';
+        case 'fcf': // FCF: 高=綠
+            return value > 0 ? '#10b981' : '#ef4444';
+        case 'debt': // 負債: 低=綠 (這裡數值是百分比，如 19.6)
+            if (value < 40) return '#10b981';
+            if (value < 60) return '#3b82f6';
+            return '#ef4444';
+        case 'pe': // PE相對 (這裡數值是 Z-score，低於 0 代表低於平均)
+            if (value < -1) return '#10b981';
+            if (value < 0) return '#3b82f6';
+            return '#ef4444';
+        default:
+            return '#636e72';
+    }
+}
+
+// 格式化百分比 (數值已是百分比，不需再乘以 100)
+function formatPercent(value) {
+    if (!value && value !== 0) return '-';
+    return `${value.toFixed(1)}%`;
+}
+
+// 格式化成長率（帶正負號，數值已是百分比，不需再乘以 100）
+function formatGrowth(value) {
+    if (!value && value !== 0) return '-';
+    const sign = value > 0 ? '+' : '';
+    return `${sign}${value.toFixed(1)}%`;
+}
+
+// 格式化 PE 相對值 (Z-Score)
+function formatPE(value) {
+    if (!value && value !== 0) return '-';
+    return value.toFixed(2);
+}
+
+// 格式化金額（單位為元，轉為億）
+function formatMoney(value) {
+    if (!value && value !== 0) return '-';
+    return `${(value / 1e8).toFixed(1)}億`;
+}
+
+// 翻譯訊號為中文
+function translateSignal(signal) {
+    const mapping = {
+        'STRONG_BUY': '強力買進',
+        'BUY': '買進',
+        'WATCH': '觀察',
+        'HOLD': '持有',
+        'REDUCE': '減碼',
+        'OVERBOUGHT_REDUCE': '超買減碼',
+        'DATA_INSUFFICIENT': '數據不足'
+    };
+    return mapping[signal] || signal;
+}
+
 // 載入最新數據
 async function loadLatestData() {
     try {
@@ -119,30 +188,52 @@ function renderTable() {
     tbody.innerHTML = '';
 
     if (currentData.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="loading">無選股數據</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="9" class="loading">無選股數據</td></tr>';
         return;
     }
 
     // 排序數據
     const sortedData = [...currentData].sort((a, b) => {
-        const aVal = a[sortColumn] || 0;
-        const bVal = b[sortColumn] || 0;
+        let aVal, bVal;
+
+        // 處理基本面因子的排序
+        if (['roe', 'eps_yoy', 'pe_relative', 'fcf', 'gross_margin_trend', 'revenue_yoy', 'debt_ratio'].includes(sortColumn)) {
+            const aDetails = a.fundamental_details || {};
+            const bDetails = b.fundamental_details || {};
+            aVal = aDetails[sortColumn]?.raw_value || 0;
+            bVal = bDetails[sortColumn]?.raw_value || 0;
+        } else {
+            aVal = a[sortColumn] || 0;
+            bVal = b[sortColumn] || 0;
+        }
+
         return sortAscending ? aVal - bVal : bVal - aVal;
     });
 
     // 填充表格
     sortedData.forEach(stock => {
         const row = document.createElement('tr');
-        const stockName = stockNames[stock.symbol] || '';
+        // 優先使用 API 返回的名稱，否則查表
+        const stockName = stock.stock_name || stockNames[stock.symbol] || '';
+        const fundamentalDetails = stock.fundamental_details || {};
+
+        // 提取各因子原始值
+        const roe = fundamentalDetails.roe?.raw_value;
+        const peRelative = fundamentalDetails.pe_relative?.raw_value;
+        const grossMargin = fundamentalDetails.gross_margin_trend?.raw_value;
+
         row.innerHTML = `
-            <td>
+            <td class="sticky-col">
                 <strong>${stock.symbol}</strong>
                 ${stockName ? `<br><span style="font-size: 0.85rem; color: #636e72;">${stockName}</span>` : ''}
             </td>
             <td><span class="score-badge" style="${getScoreColor(stock.fundamental_score)}">${Math.round(stock.fundamental_score)}</span></td>
+            <td style="color: ${getValueColor(roe, 'roe')}; font-weight: 500;">${formatPercent(roe)}</td>
+            <td style="color: ${getValueColor(peRelative, 'pe')}; font-weight: 500;">${formatPE(peRelative)}</td>
+            <td style="color: ${getValueColor(grossMargin, 'growth')}; font-weight: 500;">${formatGrowth(grossMargin)}</td>
             <td><span class="score-badge" style="${getScoreColor(stock.chip_score)}">${Math.round(stock.chip_score)}</span></td>
             <td><span class="score-badge" style="${getScoreColor(stock.tech_score)}">${Math.round(stock.tech_score)}</span></td>
-            <td><span class="signal-badge signal-${stock.signal}">${stock.signal}</span></td>
+            <td><span class="signal-badge signal-${stock.signal}">${translateSignal(stock.signal)}</span></td>
             <td><button class="detail-btn" onclick="showStockDetail('${stock.symbol}')">詳情</button></td>
         `;
         tbody.appendChild(row);
@@ -181,15 +272,16 @@ async function showStockDetail(symbol) {
 // 渲染個股詳細資訊
 function renderStockDetail(stock) {
     const modalBody = document.getElementById('modalBody');
-    const stockName = stockNames[stock.symbol] || '';
+    const stockName = stock.stock_name || stockNames[stock.symbol] || '';
 
     // 解析詳細數據
     const chipDetails = stock.chip_details || {};
     const techDetails = stock.tech_details || {};
+    const fundamentalDetails = stock.fundamental_details || {};
 
     modalBody.innerHTML = `
         <h2>${stock.symbol} ${stockName} - 選股詳細分析</h2>
-        
+
         <!-- 三維度分數 -->
         <div class="score-card">
             <div class="score-item">
@@ -205,7 +297,32 @@ function renderStockDetail(stock) {
                 <div class="score">${Math.round(stock.tech_score)}</div>
             </div>
         </div>
-        
+
+        <!-- 基本面詳情 -->
+        ${Object.keys(fundamentalDetails).length > 0 ? `
+        <div class="detail-section">
+            <h3>💰 基本面分析</h3>
+            <div class="detail-grid">
+                ${Object.entries(fundamentalDetails).map(([key, data]) => {
+        const score = data.score || 0;
+        const weight = (data.weight * 100).toFixed(0);
+        const weighted = (data.weighted || 0).toFixed(2);
+        return `
+                        <div class="detail-item">
+                            <span class="label">${translateFundamentalKey(key)}</span>
+                            <span class="value">
+                                評分: ${score}/5
+                                <span style="color: #636e72; font-size: 0.9em;">
+                                    (權重${weight}% = ${weighted}分)
+                                </span>
+                            </span>
+                        </div>
+                    `;
+    }).join('')}
+            </div>
+        </div>
+        ` : ''}
+
         <!-- 籌碼面詳情 -->
         <div class="detail-section">
             <h3>📊 籌碼面分析</h3>
@@ -218,7 +335,7 @@ function renderStockDetail(stock) {
                 `).join('')}
             </div>
         </div>
-        
+
         <!-- 技術面詳情 -->
         <div class="detail-section">
             <h3>📈 技術面分析</h3>
@@ -231,7 +348,7 @@ function renderStockDetail(stock) {
                 `).join('')}
             </div>
         </div>
-        
+
         <!-- 綜合訊號 -->
         <div class="detail-section">
             <h3>🎯 綜合訊號</h3>
@@ -242,6 +359,20 @@ function renderStockDetail(stock) {
             </div>
         </div>
     `;
+}
+
+// 翻譯基本面欄位名稱
+function translateFundamentalKey(key) {
+    const mapping = {
+        'pe_relative': 'PE 相對估值',
+        'roe': 'ROE 股東權益報酬率',
+        'eps_yoy': 'EPS 年增率',
+        'fcf': '自由現金流',
+        'gross_margin_trend': '毛利率趨勢',
+        'revenue_yoy': '營收年增率',
+        'debt_ratio': '負債比率'
+    };
+    return mapping[key] || key;
 }
 
 // 翻譯籌碼欄位名稱
